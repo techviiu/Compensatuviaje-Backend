@@ -1,0 +1,11 @@
+# Fuerza LF en todos los archivos de texto
+* text=auto eol=lf
+
+# Archivos binarios (sin conversión)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.db binary

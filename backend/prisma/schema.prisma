@@ -1,7 +1,4 @@
-// =====================================================
-// PRISMA SCHEMA - CompensaTuViaje.com
-// =====================================================
-
+// Sistema CompensaTuViaje - Migración desde DBML
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,1314 +8,1276 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =====================================================
-// ENUMS - Tipos de datos predefinidos
-// =====================================================
-// Los enums garantizan que solo se usen valores válidos en ciertos campos
+// =========================
+// Enums
+// =========================
 
 enum CompanyStatus {
-  REGISTERED         // Empresa registrada pero sin contrato
-  PENDING_CONTRACT   // Esperando firma de contrato
-  SIGNED            // Contrato firmado, esperando activación
-  ACTIVE            // Empresa activa, puede usar la plataforma
-  SUSPENDED         // Suspendida temporalmente
+  registered
+  pending_contract
+  signed
+  active
+  suspended
 }
 
 enum BatchStatus {
-  UPLOADED          // Archivo subido, esperando validación
-  VALIDATING        // Validando datos del archivo
-  PROCESSING        // Calculando emisiones
-  DONE              // Completado exitosamente
-  FAILED            // Error en el procesamiento
+  uploaded
+  validating
+  processing
+  done
+  failed
 }
 
 enum ValidationStatus {
-  PENDING           // Esperando validación
-  VALID             // Datos correctos
-  WARNING           // Datos válidos pero con advertencias
-  INVALID           // Datos incorrectos, no procesables
+  pending
+  valid
+  warning
+  invalid
 }
 
 enum SeverityLevel {
-  INFO              // Información general
-  WARNING           // Advertencia, no bloquea
-  ERROR             // Error, bloquea procesamiento
+  info
+  warning
+  error
 }
 
 enum PaymentStatus {
-  PENDING           // Pago iniciado pero no confirmado
-  PAID              // Pago confirmado
-  FAILED            // Pago falló
-  REFUNDED          // Pago reembolsado
+  pending
+  paid
+  failed
+  refunded
 }
 
 enum RefundStatus {
-  REQUESTED         // Reembolso solicitado
-  PROCESSING        // Procesando reembolso
-  COMPLETED         // Reembolso completado
-  FAILED            // Reembolso falló
+  requested
+  processing
+  completed
+  failed
 }
 
 enum CertificateStatus {
-  DRAFT             // Certificado en borrador
-  ISSUED            // Certificado emitido
-  REVOKED           // Certificado revocado
+  draft
+  issued
+  revoked
 }
 
 enum ProjectStatus {
-  PLANNED           // Proyecto planificado
-  ACTIVE            // Proyecto activo, recibe fondos
-  COMPLETED         // Proyecto completado
-  PAUSED            // Proyecto pausado temporalmente
-  MAINTENANCE       // Proyecto en mantenimiento
+  planned
+  active
+  completed
+  paused
+  maintenance
 }
 
 enum BadgeType {
-  PERMANENT         // Badge permanente (ej: Pionero ESG)
-  TEMPORARY         // Badge temporal (ej: Líder del mes)
+  permanent
+  temporary
 }
 
 enum JobStatus {
-  QUEUED            // Job en cola de procesamiento
-  RUNNING           // Job ejecutándose
-  SUCCEEDED         // Job completado exitosamente
-  FAILED            // Job falló
+  queued
+  running
+  succeeded
+  failed
 }
 
 enum LoginResult {
-  SUCCESS           // Login exitoso
-  FAILURE           // Login falló
+  success
+  failure
 }
 
-// =====================================================
-// ENUMS ESPECÍFICOS PARA MÉTODOS DUALES
-// =====================================================
-
 enum CalculationType {
-  MANIFEST_UPLOAD   // Método 1: Manifiestos completos (alta precisión)
-  MINIMAL_INPUT     // Método 2: Datos mínimos + APIs (conveniencia)
+  MANIFEST_UPLOAD
+  MINIMAL_INPUT
 }
 
 enum EmissionSource {
-  INTERNAL_FACTORS         // Factores IPCC/IATA internos
-  GOOGLE_TRAVEL_IMPACT_API // API de Google Travel Impact Model
-  ICAO_CALCULATOR_API      // API del calculador ICAO
-  MIXED_SOURCES           // Combinación de fuentes
+  internal_factors
+  google_travel_impact_api
+  icao_calculator_api
+  mixed_sources
 }
 
 enum ProjectPricingStatus {
-  DRAFT             // Precio en borrador
-  SCHEDULED         // Precio programado para activación futura
-  ACTIVE            // Precio activo actualmente
-  SUPERSEDED        // Precio reemplazado por uno nuevo
+  draft
+  scheduled
+  active
+  superseded
 }
 
 enum ApiProviderStatus {
-  ACTIVE            // API funcionando correctamente
-  INACTIVE          // API desactivada
-  MAINTENANCE       // API en mantenimiento
+  active
+  inactive
+  maintenance
 }
 
-// =====================================================
-// NÚCLEO B2B Y PERFILES
-// =====================================================
-// Estas tablas manejan empresas, usuarios y configuraciones principales
+// =========================
+// Núcleo B2B y perfiles
+// =========================
 
 model Company {
-  id                            String                         @id @default(uuid())
-  razonSocial                   String                         @map("razon_social")
-  rut                           String                         @unique
-  nombreComercial               String?                        @map("nombre_comercial")
-  giroSii                       String?                        @map("giro_sii")
-  tamanoEmpresa                 String?                        @map("tamano_empresa")
-  direccion                     String?
-  phone                         String?
-  slugPublico                   String?                        @unique @map("slug_publico")
-  publicProfileOptIn            Boolean                        @default(false) @map("public_profile_opt_in")
-  preferredCalculationMethod    CalculationType                @default(MINIMAL_INPUT) @map("preferred_calculation_method")
-  status                        CompanyStatus                  @default(REGISTERED)
-  createdAt                     DateTime                       @default(now()) @map("created_at")
-  updatedAt                     DateTime                       @updatedAt @map("updated_at")
+  id                          String        @id @default(uuid()) @db.Uuid
+  razonSocial                 String        @map("razon_social") @db.VarChar
+  rut                         String        @db.VarChar
+  nombreComercial             String?       @map("nombre_comercial") @db.VarChar
+  giroSii                     String?       @map("giro_sii") @db.VarChar
+  tamanoEmpresa               String?       @map("tamano_empresa") @db.VarChar
+  direccion                   String?       @db.VarChar
+  phone                       String?       @db.VarChar
+  slugPublico                 String?       @unique @map("slug_publico") @db.VarChar
+  publicProfileOptIn          Boolean       @default(false) @map("public_profile_opt_in")
+  preferredCalculationMethod  CalculationType @default(MINIMAL_INPUT) @map("preferred_calculation_method")
+  status                      CompanyStatus
+  createdAt                   DateTime      @default(now()) @map("created_at")
+  updatedAt                   DateTime      @updatedAt @map("updated_at")
 
-  // RELACIONES - Una empresa puede tener muchos...
-  documents                     CompanyDocument[]              // Documentos legales
-  domains                       CompanyDomain[]                // Dominios verificados
-  settings                      CompanySettings?               // Configuración (1-a-1)
-  verificationEvents            CompanyVerificationEvent[]     // Historial de cambios de estado
-  users                         CompanyUser[]                  // Usuarios de la empresa
-  uploadBatches                 UploadBatch[]                  // Cargas de manifiestos
-  flightRecords                 FlightRecord[]                 // Registros de vuelos
-  quickCalculations             QuickCalculation[]             // Cálculos rápidos
-  emissionSummaries             EmissionSummary[]              // Resúmenes mensuales
-  routeSummaries                RouteSummary[]                 // Resúmenes por ruta
-  pricingOverrides              CompanyPricingOverride[]       // Precios especiales
-  payments                      Payment[]                      // Pagos realizados
-  compensationOrders            CompensationOrder[]            // Órdenes de compensación
-  certificateRequests           CertificateRequest[]           // Solicitudes de certificados
-  certificates                  Certificate[]                  // Certificados emitidos
-  rankingSnapshots              RankingSnapshot[]              // Posiciones en rankings
-  badges                        CompanyBadge[]                 // Badges obtenidos
-  shareEvents                   ShareEvent[]                   // Compartimientos en RRSS
-  widgets                       Widget[]                       // Widgets embebibles
-  apiKeys                       ApiKey[]                       // Claves de API
-  calculationMetrics            CompanyCalculationMetric[]     // Métricas de uso
-  webhooks                      Webhook[]                      // Webhooks configurados
-  auditLogs                     AuditLog[]                     // Logs de auditoría (como actor)
-  loginEvents                   LoginEvent[]                   // Eventos de login (via users)
-  apiUsageLogs                  ApiUsageLog[]                  // Logs de uso de API
+  // Relations
+  documents                   CompanyDocument[]
+  domains                     CompanyDomain[]
+  settings                    CompanySettings?
+  verificationEvents          CompanyVerificationEvent[]
+  companyUsers                CompanyUser[]
+  uploadBatches               UploadBatch[]
+  flightRecords               FlightRecord[]
+  emissionSummaries           EmissionSummary[]
+  routeSummaries              RouteSummary[]
+  pricingOverrides            CompanyPricingOverride[]
+  payments                    Payment[]
+  compensationOrders          CompensationOrder[]
+  certificateRequests         CertificateRequest[]
+  certificates                Certificate[]
+  rankingSnapshots            RankingSnapshot[]
+  companyBadges               CompanyBadge[]
+  shareEvents                 ShareEvent[]
+  widgets                     Widget[]
+  apiKeys                     ApiKey[]
+  apiUsageLogs                ApiUsageLog[]
+  companyCalculationMetrics   CompanyCalculationMetric[]
+  webhooks                    Webhook[]
+  quickCalculations           QuickCalculation[]
 
   @@map("companies")
 }
 
 model CompanyDocument {
-  id           String    @id @default(uuid())
-  companyId    String    @map("company_id")
-  docType      String    @map("doc_type") // 'contrato', 'existencia', 'vigencia'
-  fileId       String    @map("file_id")
-  status       String    // 'pending', 'approved', 'rejected'
-  uploadedAt   DateTime  @default(now()) @map("uploaded_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  docType    String   @map("doc_type") @db.VarChar
+  fileId     String   @map("file_id") @db.Uuid
+  status     String   @db.VarChar
+  uploadedAt DateTime @map("uploaded_at")
 
-  // RELACIONES
-  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  file         FileUpload @relation(fields: [fileId], references: [id])
+  company Company     @relation(fields: [companyId], references: [id])
+  file    FileUpload  @relation(fields: [fileId], references: [id])
 
   @@map("company_documents")
 }
 
 model CompanyDomain {
-  id           String    @id @default(uuid())
-  companyId    String    @map("company_id")
-  domain       String    // Ej: 'latam.com'
-  verified     Boolean   @default(false)
-  verifiedAt   DateTime? @map("verified_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  domain     String    @db.VarChar
+  verified   Boolean   @default(false)
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
-  // RELACIONES
-  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
 
-  @@unique([companyId, domain]) // Una empresa no puede tener el mismo dominio dos veces
   @@map("company_domains")
 }
 
 model CompanySettings {
-  id                    String    @id @default(uuid())
-  companyId             String    @unique @map("company_id") // 1-a-1 con Company
-  publicTagline         String?   @map("public_tagline")
-  publicBannerUrl       String?   @map("public_banner_url")
-  notificationsJson     String?   @map("notifications_json") // JSON con configuración
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @unique @map("company_id") @db.Uuid
+  publicTagline      String?  @map("public_tagline") @db.VarChar
+  publicBannerUrl    String?  @map("public_banner_url") @db.VarChar
+  notificationsJson  String?  @map("notifications_json") @db.Text
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
-  // RELACIONES
-  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
 
   @@map("company_settings")
 }
 
 model CompanyVerificationEvent {
-  id              String        @id @default(uuid())
-  companyId       String        @map("company_id")
-  fromStatus      CompanyStatus @map("from_status")
-  toStatus        CompanyStatus @map("to_status")
-  notedByUserId   String        @map("noted_by_user_id")
-  note            String?
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id           String        @id @default(uuid()) @db.Uuid
+  companyId    String        @map("company_id") @db.Uuid
+  fromStatus   CompanyStatus @map("from_status")
+  toStatus     CompanyStatus @map("to_status")
+  notedByUserId String       @map("noted_by_user_id") @db.Uuid
+  note         String?       @db.Text
+  createdAt    DateTime      @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  notedByUser     User          @relation(fields: [notedByUserId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [notedByUserId], references: [id])
 
   @@map("company_verification_events")
 }
 
-// =====================================================
-// USUARIOS Y RBAC (Role-Based Access Control)
-// =====================================================
-// Sistema de autenticación y autorización por roles
+// =========================
+// Usuarios y RBAC
+// =========================
 
 model User {
-  id                        String                      @id @default(uuid())
-  email                     String                      @unique
-  name                      String
-  passwordHash              String                      @map("password_hash") // bcrypt hash
-  isActive                  Boolean                     @default(true) @map("is_active")
-  lastLoginAt               DateTime?                   @map("last_login_at")
-  createdAt                 DateTime                    @default(now()) @map("created_at")
-  updatedAt                 DateTime                    @updatedAt @map("updated_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar
+  name         String    @db.VarChar
+  passwordHash String    @map("password_hash") @db.VarChar
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  // RELACIONES
-  companyUsers              CompanyUser[]               // Empresas a las que pertenece
-  verificationEvents        CompanyVerificationEvent[]  // Eventos que registró
-  projectPricingVersions    ProjectPricingVersion[]     // Versiones de pricing que creó
-  globalMarginConfigs       GlobalMarginConfig[]        // Configuraciones de margen que creó
-  auditLogs                 AuditLog[]                  // Acciones que realizó
-  loginEvents               LoginEvent[]                // Sus intentos de login
-  projectPricingAudits      ProjectPricingAudit[]       // Cambios de pricing que hizo
+  // Relations
+  companyUsers               CompanyUser[]
+  verificationEvents         CompanyVerificationEvent[]
+  auditLogs                  AuditLog[]
+  loginEvents                LoginEvent[]
+  projectPricingVersions     ProjectPricingVersion[]
+  globalMarginConfigs        GlobalMarginConfig[]
+  projectPricingAudits       ProjectPricingAudit[] @relation("ChangedByUser")
+
 
   @@map("users")
 }
 
 model CompanyUser {
-  id           String                @id @default(uuid())
-  companyId    String                @map("company_id")
-  userId       String                @map("user_id")
-  isAdmin      Boolean               @default(false) @map("is_admin") // Admin de la empresa
-  status       String                @default("active")
-  createdAt    DateTime              @default(now()) @map("created_at")
-  updatedAt    DateTime              @updatedAt @map("updated_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  isAdmin   Boolean  @default(false) @map("is_admin")
+  status    String   @default("active") @db.VarChar
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  // RELACIONES
-  company      Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  roles        CompanyUserRole[]     // Roles en esta empresa
+  company Company           @relation(fields: [companyId], references: [id])
+  user    User              @relation(fields: [userId], references: [id])
+  roles   CompanyUserRole[]
 
-  @@unique([companyId, userId]) // Un usuario solo puede estar una vez en una empresa
+  @@unique([companyId, userId])
   @@map("company_users")
 }
 
 model Role {
-  id              String             @id @default(uuid())
-  code            String             @unique // 'ADMIN', 'OPERATOR', 'VIEWER'
-  name            String
-  description     String?
-  createdAt       DateTime           @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar
+  name        String   @db.VarChar
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  permissions     RolePermission[]   // Permisos que tiene este rol
-  companyUsers    CompanyUserRole[]  // Usuarios que tienen este rol
+  permissions     RolePermission[]
+  companyUserRoles CompanyUserRole[]
 
   @@map("roles")
 }
 
 model Permission {
-  id              String             @id @default(uuid())
-  code            String             @unique // 'upload_manifests', 'view_rankings'
-  name            String
-  description     String?
-  createdAt       DateTime           @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar
+  name        String   @db.VarChar
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  roles           RolePermission[]   // Roles que tienen este permiso
+  roles RolePermission[]
 
   @@map("permissions")
 }
 
 model RolePermission {
-  id              String      @id @default(uuid())
-  roleId          String      @map("role_id")
-  permissionId    String      @map("permission_id")
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  role            Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission      Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
-  @@unique([roleId, permissionId]) // Un rol no puede tener el mismo permiso dos veces
+  @@unique([roleId, permissionId])
   @@map("role_permissions")
 }
 
 model CompanyUserRole {
-  id              String      @id @default(uuid())
-  companyUserId   String      @map("company_user_id")
-  roleId          String      @map("role_id")
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  companyUserId String   @map("company_user_id") @db.Uuid
+  roleId        String   @map("role_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  companyUser     CompanyUser @relation(fields: [companyUserId], references: [id], onDelete: Cascade)
-  role            Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  companyUser CompanyUser @relation(fields: [companyUserId], references: [id])
+  role        Role        @relation(fields: [roleId], references: [id])
 
-  @@unique([companyUserId, roleId]) // Un usuario no puede tener el mismo rol dos veces en la misma empresa
+  @@unique([companyUserId, roleId])
   @@map("company_user_roles")
 }
 
-// =====================================================
-// INGESTA DE DATOS DE VUELOS
-// =====================================================
-// Manejo de cargas masivas de manifiestos (Método 1)
+// =========================
+// Ingesta de datos de vuelos
+// =========================
 
 model UploadBatch {
-  id              String              @id @default(uuid())
-  companyId       String              @map("company_id")
-  filename        String
-  sizeBytes       Int                 @map("size_bytes")
-  rowsCount       Int?                @map("rows_count") // Se calcula después de procesar
-  status          BatchStatus         @default(UPLOADED)
-  errorMessage    String?             @map("error_message")
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  id           String      @id @default(uuid()) @db.Uuid
+  companyId    String      @map("company_id") @db.Uuid
+  filename     String      @db.VarChar
+  sizeBytes    Int         @map("size_bytes")
+  rowsCount    Int?        @map("rows_count")
+  status       BatchStatus
+  errorMessage String?     @map("error_message") @db.Text
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
 
-  // RELACIONES
-  company         Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  manifestFile    ManifestFile?       // Archivo físico (1-a-1)
-  flightRecords   FlightRecord[]      // Vuelos procesados de este batch
-  processingRuns  ProcessingRun[]     // Jobs de procesamiento
-  batchSummary    BatchSummary?       // Resumen final (1-a-1)
+  company        Company          @relation(fields: [companyId], references: [id])
+  manifestFile   ManifestFile?
+  flightRecords  FlightRecord[]
+  processingRuns ProcessingRun[]
+  batchSummary   BatchSummary?
 
   @@map("upload_batches")
 }
 
 model ManifestFile {
-  id              String        @id @default(uuid())
-  batchId         String        @unique @map("batch_id") // 1-a-1 con UploadBatch
-  storageUrl      String        @map("storage_url") // URL en S3/CDN
-  checksum        String        // MD5/SHA256 para verificar integridad
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  batchId    String   @unique @map("batch_id") @db.Uuid
+  storageUrl String   @map("storage_url") @db.VarChar
+  checksum   String   @db.VarChar
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  batch           UploadBatch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch UploadBatch @relation(fields: [batchId], references: [id])
 
   @@map("manifest_files")
 }
 
-// =====================================================
-// REGISTROS DE VUELOS - CORE DEL SISTEMA
-// =====================================================
-// Esta tabla es el corazón del sistema, almacena cada vuelo calculado
-
 model FlightRecord {
-  id                      String             @id @default(uuid())
-  companyId               String             @map("company_id")
-  batchId                 String?            @map("batch_id") // NULL para cálculos rápidos
-  calculationType         CalculationType    @map("calculation_type")
-  flightNumber            String?            @map("flight_number")
-  originAirportId         String             @map("origin_airport_id")
-  destinationAirportId    String             @map("destination_airport_id")
-  aircraftModelId         String?            @map("aircraft_model_id") // Específico para Método 1
-  classBreakdown          String?            @map("class_breakdown") // JSON: {"economy": 150, "business": 20}
-  flightDate              DateTime           @map("flight_date")
-  totalPassengers         Int                @map("total_passengers")
-  distanceKm              Decimal            @map("distance_km")
-  computedEmissions       Decimal            @map("computed_emissions") // tCO2
-  confidenceScore         Decimal            @map("confidence_score") // 0.0-1.0
-  emissionSource          EmissionSource     @map("emission_source")
-  apiResponseData         String?            @map("api_response_data") // JSON response de APIs
-  factorsVersionId        String?            @map("factors_version_id")
-  validationStatus        ValidationStatus   @map("validation_status")
-  anomalyFlags            String?            @map("anomaly_flags") // Flags separados por comas
-  rawRowRef               String?            @map("raw_row_ref") // Referencia a fila CSV original
-  calculationMetadata     String?            @map("calculation_metadata") // JSON con metadatos
-  createdAt               DateTime           @default(now()) @map("created_at")
+  id                   String            @id @default(uuid()) @db.Uuid
+  companyId            String            @map("company_id") @db.Uuid
+  batchId              String?           @map("batch_id") @db.Uuid
+  calculationType      CalculationType   @map("calculation_type")
+  flightNumber         String?           @map("flight_number") @db.VarChar
+  originAirportId      String            @map("origin_airport_id") @db.Uuid
+  destinationAirportId String            @map("destination_airport_id") @db.Uuid
+  aircraftModelId      String            @map("aircraft_model_id") @db.Uuid
+  classBreakdown       Json?             @map("class_breakdown")
+  flightDate           DateTime          @map("flight_date") @db.Date
+  totalPassengers      Int               @map("total_passengers")
+  distanceKm           Decimal           @map("distance_km") @db.Decimal(10, 2)
+  computedEmissions    Decimal           @map("computed_emissions") @db.Decimal(10, 2)
+  confidenceScore      Decimal           @map("confidence_score") @db.Decimal(3, 2)
+  emissionSource       EmissionSource    @map("emission_source")
+  apiResponseData      Json?             @map("api_response_data")
+  factorsVersionId     String            @map("factors_version_id") @db.Uuid
+  validationStatus     ValidationStatus  @map("validation_status")
+  anomalyFlags         String?           @map("anomaly_flags") @db.Text
+  rawRowRef            String?           @map("raw_row_ref") @db.Text
+  calculationMetadata  Json?             @map("calculation_metadata")
+  createdAt            DateTime          @default(now()) @map("created_at")
 
-  // RELACIONES
-  company                 Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  batch                   UploadBatch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  originAirport           Airport            @relation("FlightOrigin", fields: [originAirportId], references: [id])
-  destinationAirport      Airport            @relation("FlightDestination", fields: [destinationAirportId], references: [id])
-  aircraftModel           AircraftModel?     @relation(fields: [aircraftModelId], references: [id])
-  factorsVersion          EmissionFactorVersion? @relation(fields: [factorsVersionId], references: [id])
-  validationErrors        RecordValidationError[] // Errores de validación
+  company            Company                    @relation(fields: [companyId], references: [id])
+  batch              UploadBatch?               @relation(fields: [batchId], references: [id])
+  originAirport      Airport                    @relation("OriginAirport", fields: [originAirportId], references: [id])
+  destinationAirport Airport                    @relation("DestinationAirport", fields: [destinationAirportId], references: [id])
+  aircraftModel      AircraftModel              @relation(fields: [aircraftModelId], references: [id])
+  emissionFactor     EmissionFactor             @relation(fields: [factorsVersionId], references: [id])
+  validationErrors   RecordValidationError[]
 
-  @@index([companyId, flightDate]) // Optimización para consultas por empresa y fecha
-  @@index([calculationType]) // Optimización para filtrar por método
   @@map("flight_records")
 }
 
 model RecordValidationError {
-  id              String          @id @default(uuid())
-  flightRecordId  String          @map("flight_record_id")
-  code            String          // 'INVALID_AIRPORT', 'FUTURE_DATE', etc.
-  message         String
-  severity        SeverityLevel
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  flightRecordId String        @map("flight_record_id") @db.Uuid
+  code           String        @db.VarChar
+  message        String        @db.Text
+  severity       SeverityLevel
+  createdAt      DateTime      @default(now()) @map("created_at")
 
-  // RELACIONES
-  flightRecord    FlightRecord    @relation(fields: [flightRecordId], references: [id], onDelete: Cascade)
+  flightRecord FlightRecord @relation(fields: [flightRecordId], references: [id])
 
   @@map("record_validation_errors")
 }
 
 model ProcessingRun {
-  id              String        @id @default(uuid())
-  batchId         String        @map("batch_id")
-  runType         String        @map("run_type") // 'validation', 'calculation', 'ranking'
-  status          JobStatus     @default(QUEUED)
-  startedAt       DateTime?     @map("started_at")
-  finishedAt      DateTime?     @map("finished_at")
-  metricsJson     String?       @map("metrics_json") // JSON con métricas del procesamiento
-  errorMessage    String?       @map("error_message")
+  id           String    @id @default(uuid()) @db.Uuid
+  batchId      String    @map("batch_id") @db.Uuid
+  runType      String    @map("run_type") @db.VarChar
+  status       JobStatus
+  startedAt    DateTime  @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
+  metricsJson  String?   @map("metrics_json") @db.Text
+  errorMessage String?   @map("error_message") @db.Text
 
-  // RELACIONES
-  batch           UploadBatch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch UploadBatch @relation(fields: [batchId], references: [id])
 
   @@map("processing_runs")
 }
 
-// =====================================================
+// =========================
 // CATÁLOGOS Y FACTORES
-// =====================================================
-// Datos maestros para cálculos y validaciones
+// =========================
+
+model TransportType {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar
+  name        String   @db.VarChar
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  serviceClasses   ServiceClass[]
+  emissionFactors  EmissionFactor[]
+
+  @@map("transport_types")
+}
 
 model Airport {
-  id                      String            @id @default(uuid())
-  code                    String            @unique // IATA: 'SCL', ICAO: 'SCEL'
-  name                    String
-  city                    String
-  country                 String
-  lat                     Decimal
-  lon                     Decimal
-  createdAt               DateTime          @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar
+  name      String   @db.VarChar
+  city      String   @db.VarChar
+  country   String   @db.VarChar
+  lat       Decimal  @db.Decimal(10, 6)
+  lon       Decimal  @db.Decimal(10, 6)
+  createdAt DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  flightOrigins           FlightRecord[]    @relation("FlightOrigin")
-  flightDestinations      FlightRecord[]    @relation("FlightDestination")
-  routeOrigins            RouteSummary[]    @relation("RouteOrigin")
-  routeDestinations       RouteSummary[]    @relation("RouteDestination")
-  cacheOrigins            RouteDistanceCache[] @relation("CacheOrigin")
-  cacheDestinations       RouteDistanceCache[] @relation("CacheDestination")
+  originFlights       FlightRecord[]       @relation("OriginAirport")
+  destinationFlights  FlightRecord[]       @relation("DestinationAirport")
+  originRoutes        RouteSummary[]       @relation("OriginRoutes")
+  destinationRoutes   RouteSummary[]       @relation("DestinationRoutes")
+  originCaches        RouteDistanceCache[] @relation("OriginCache")
+  destinationCaches   RouteDistanceCache[] @relation("DestinationCache")
 
   @@map("airports")
 }
 
 model AircraftModel {
-  id              String          @id @default(uuid())
-  code            String          @unique // 'A320-200', 'B737-800'
-  name            String
-  category        String          // 'regional', 'narrow', 'wide'
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  code                  String   @unique @db.VarChar
+  name                  String   @db.VarChar
+  manufacturer          String   @db.VarChar
+  category              String   @db.VarChar
+  typicalSeatsEconomy   Int?     @map("typical_seats_economy")
+  typicalSeatsBusiness  Int?     @map("typical_seats_business")
+  typicalSeatsFirst     Int?     @map("typical_seats_first")
+  fuelEfficiencyBase    Decimal? @map("fuel_efficiency_base") @db.Decimal(5, 2)
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  flightRecords   FlightRecord[]
+  flightRecords          FlightRecord[]
+  emissionOverrides      AircraftEmissionOverride[]
 
   @@map("aircraft_models")
 }
 
-model ClassType {
-  id              String    @id @default(uuid())
-  code            String    @unique // 'economy', 'business', 'first'
-  name            String
-  multiplier      Decimal   @default(1.0) // Economy: 1.0, Business: 2.0, First: 3.0
+model ServiceClass {
+  id              String   @id @default(uuid()) @db.Uuid
+  transportTypeId String   @map("transport_type_id") @db.Uuid
+  code            String   @unique @db.VarChar
+  name            String   @db.VarChar
+  spaceMultiplier Decimal  @map("space_multiplier") @db.Decimal(3, 2)
+  comfortFactor   Decimal  @map("comfort_factor") @db.Decimal(3, 2)
+  description     String?  @db.Text
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  transportType        TransportType              @relation(fields: [transportTypeId], references: [id])
+  emissionFactors      EmissionFactor[]
+  emissionOverrides    AircraftEmissionOverride[]
+
+  @@map("service_classes")
+}
+
+model EmissionFactor {
+  id                         String   @id @default(uuid()) @db.Uuid
+  transportTypeId            String   @map("transport_type_id") @db.Uuid
+  aircraftCategory           String?  @map("aircraft_category") @db.VarChar
+  serviceClassId             String   @map("service_class_id") @db.Uuid
+  factorKgCo2PerKmPerPax     Decimal  @map("factor_kg_co2_per_km_per_pax") @db.Decimal(8, 5)
+  source                     String   @db.VarChar
+  methodology                String?  @db.VarChar
+  confidenceLevel            String?  @map("confidence_level") @db.VarChar
+  geographicScope            String?  @map("geographic_scope") @db.VarChar
+  version                    String   @db.VarChar
+  validFrom                  DateTime @map("valid_from") @db.Date
+  validTo                    DateTime? @map("valid_to") @db.Date
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  transportType       TransportType           @relation(fields: [transportTypeId], references: [id])
+  serviceClass        ServiceClass            @relation(fields: [serviceClassId], references: [id])
+  flightRecords       FlightRecord[]
+  factorCaches        EmissionFactorCache[]
+
+  @@index([transportTypeId, aircraftCategory, serviceClassId, validFrom])
+  @@index([source, version, validFrom])
+  @@map("emission_factors")
+}
+
+model AircraftEmissionOverride {
+  id              String    @id @default(uuid()) @db.Uuid
+  aircraftModelId String    @map("aircraft_model_id") @db.Uuid
+  serviceClassId  String    @map("service_class_id") @db.Uuid
+  overrideFactor  Decimal   @map("override_factor") @db.Decimal(8, 5)
+  reason          String?   @db.Text
+  source          String    @db.VarChar
+  validFrom       DateTime  @map("valid_from") @db.Date
+  validTo         DateTime? @map("valid_to") @db.Date
   createdAt       DateTime  @default(now()) @map("created_at")
 
-  @@map("class_types")
+  aircraftModel AircraftModel @relation(fields: [aircraftModelId], references: [id])
+  serviceClass  ServiceClass  @relation(fields: [serviceClassId], references: [id])
+
+  @@index([aircraftModelId, serviceClassId, validFrom])
+  @@map("aircraft_emission_overrides")
 }
 
-model EmissionFactorVersion {
-  id              String          @id @default(uuid())
-  category        String          // 'aircraft', 'fuel', 'class'
-  subtype         String          // 'narrow_body', 'wide_body', etc.
-  factorValue     Decimal         @map("factor_value") // kg CO2/km/pax
-  unit            String          // 'kg_co2_per_km_per_pax'
-  validFrom       DateTime        @map("valid_from")
-  validTo         DateTime?       @map("valid_to")
-  source          String          // 'IPCC_2019', 'IATA_2023'
-  createdAt       DateTime        @default(now()) @map("created_at")
+model EmissionFactorCache {
+  id              String   @id @default(uuid()) @db.Uuid
+  cacheKey        String   @unique @map("cache_key") @db.VarChar
+  transportType   String   @map("transport_type") @db.VarChar
+  aircraftCategory String? @map("aircraft_category") @db.VarChar
+  serviceClass    String   @map("service_class") @db.VarChar
+  finalFactor     Decimal  @map("final_factor") @db.Decimal(8, 5)
+  sourceFactorId  String   @map("source_factor_id") @db.Uuid
+  calculatedAt    DateTime @map("calculated_at")
+  expiresAt       DateTime @map("expires_at")
 
-  // RELACIONES
-  flightRecords   FlightRecord[]
+  sourceFactor EmissionFactor @relation(fields: [sourceFactorId], references: [id])
 
-  @@map("emission_factor_versions")
+  @@index([cacheKey])
+  @@index([expiresAt])
+  @@map("emission_factor_cache")
 }
-
-// =====================================================
-// CACHE Y OPTIMIZACIÓN PARA MÉTODOS DUALES
-// =====================================================
-// Optimización para evitar recálculos y llamadas a APIs
 
 model RouteDistanceCache {
-  id                      String                    @id @default(uuid())
-  originIata              String                    @map("origin_iata")
-  destinationIata         String                    @map("destination_iata")
-  originAirportId         String                    @map("origin_airport_id")
-  destinationAirportId    String                    @map("destination_airport_id")
-  distanceKm              Decimal                   @map("distance_km")
-  sourceApi               String                    @map("source_api") // 'great_circle', 'google_travel_impact'
-  confidenceScore         Decimal                   @map("confidence_score")
-  lastUpdated             DateTime                  @map("last_updated")
-  cacheHits               Int                       @default(0) @map("cache_hits")
-  createdAt               DateTime                  @default(now()) @map("created_at")
+  id                  String   @id @default(uuid()) @db.Uuid
+  originIata          String   @map("origin_iata") @db.VarChar
+  destinationIata     String   @map("destination_iata") @db.VarChar
+  originAirportId     String   @map("origin_airport_id") @db.Uuid
+  destinationAirportId String  @map("destination_airport_id") @db.Uuid
+  distanceKm          Decimal  @map("distance_km") @db.Decimal(10, 2)
+  sourceApi           String   @map("source_api") @db.VarChar
+  confidenceScore     Decimal  @map("confidence_score") @db.Decimal(3, 2)
+  lastUpdated         DateTime @map("last_updated")
+  cacheHits           Int      @default(0) @map("cache_hits")
+  createdAt           DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  originAirport           Airport                   @relation("CacheOrigin", fields: [originAirportId], references: [id])
-  destinationAirport      Airport                   @relation("CacheDestination", fields: [destinationAirportId], references: [id])
-  emissionCalculations    EmissionCalculationCache[] // Cache de cálculos
+  originAirport      Airport                    @relation("OriginCache", fields: [originAirportId], references: [id])
+  destinationAirport Airport                    @relation("DestinationCache", fields: [destinationAirportId], references: [id])
+  emissionCaches     EmissionCalculationCache[]
 
-  @@unique([originIata, destinationIata]) // Una ruta solo puede estar una vez en cache
+  @@unique([originIata, destinationIata])
   @@map("route_distance_cache")
 }
 
-model QuickCalculation {
-  id                          String            @id @default(uuid())
-  companyId                   String            @map("company_id")
-  routeOrigin                 String            @map("route_origin") // Código IATA
-  routeDestination            String            @map("route_destination")
-  aircraftType                String            @map("aircraft_type") // Genérico: 'narrow_body'
-  passengersTotal             Int               @map("passengers_total")
-  estimatedClassDistribution  String?           @map("estimated_class_distribution") // JSON
-  distanceKm                  Decimal           @map("distance_km")
-  emissionSource              EmissionSource    @map("emission_source")
-  totalCo2Kg                  Decimal           @map("total_co2_kg")
-  confidenceLevel             Decimal           @map("confidence_level")
-  calculationDate             DateTime          @map("calculation_date")
-  apiResponseTimeMs           Int?              @map("api_response_time_ms")
-  createdAt                   DateTime          @default(now()) @map("created_at")
-
-  // RELACIONES
-  company                     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  @@index([companyId, calculationDate]) // Optimización para analytics
-  @@map("quick_calculations")
-}
-
-model EmissionCalculationCache {
-  id                String              @id @default(uuid())
-  routeCacheId      String              @map("route_cache_id")
-  aircraftType      String              @map("aircraft_type")
-  passengersRange   String              @map("passengers_range") // '150-170'
-  emissionFactor    Decimal             @map("emission_factor")
-  co2TotalKg        Decimal             @map("co2_total_kg")
-  apiSource         String              @map("api_source")
-  confidenceScore   Decimal             @map("confidence_score")
-  lastUsed          DateTime            @map("last_used")
-  useCount          Int                 @default(1) @map("use_count")
-  createdAt         DateTime            @default(now()) @map("created_at")
-
-  // RELACIONES
-  routeCache        RouteDistanceCache  @relation(fields: [routeCacheId], references: [id], onDelete: Cascade)
-
-  @@unique([routeCacheId, aircraftType, passengersRange])
-  @@map("emission_calculation_cache")
-}
-
 model AnomalyRule {
-  id              String    @id @default(uuid())
-  code            String    @unique // 'EXCESSIVE_PASSENGERS', 'UNREALISTIC_DISTANCE'
-  description     String
-  active          Boolean   @default(true)
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("anomaly_rules")
 }
 
-// =====================================================
-// CONFIGURACIÓN DE APIs EXTERNAS
-// =====================================================
-// Gestión de APIs como Google Travel Impact Model
-
-model ApiConfiguration {
-  id                    String              @id @default(uuid())
-  providerName          String              @map("provider_name") // 'google_travel_impact'
-  endpointUrl           String              @map("endpoint_url")
-  apiKeyReference       String              @map("api_key_reference") // Referencia a secrets
-  rateLimitPerHour      Int                 @map("rate_limit_per_hour")
-  timeoutMs             Int                 @default(5000) @map("timeout_ms")
-  status                ApiProviderStatus
-  lastHealthCheck       DateTime?           @map("last_health_check")
-  successRate24h        Decimal?            @map("success_rate_24h")
-  avgResponseTimeMs     Int?                @map("avg_response_time_ms")
-  createdAt             DateTime            @default(now()) @map("created_at")
-
-  // RELACIONES
-  usageLogs             ApiUsageLog[]       // Logs de uso
-
-  @@map("api_configurations")
-}
-
-// =====================================================
-// AGREGADOS Y PERÍODOS
-// =====================================================
-// Resúmenes precalculados para dashboards y analytics
+// =========================
+// Agregados y períodos
+// =========================
 
 model EmissionSummary {
-  id              String    @id @default(uuid())
-  companyId       String    @map("company_id")
-  periodMonth     DateTime  @map("period_month") // Primer día del mes
-  flightsCount    Int       @map("flights_count")
-  passengers      Int
-  distanceKm      Decimal   @map("distance_km")
-  emissionsTco2   Decimal   @map("emissions_tco2")
-  coveragePct     Decimal   @map("coverage_pct") // % de vuelos compensados
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  periodMonth  DateTime @map("period_month") @db.Date
+  flightsCount Int      @map("flights_count")
+  passengers   Int
+  distanceKm   Decimal  @map("distance_km") @db.Decimal(12, 2)
+  emissionsTco2 Decimal @map("emissions_tco2") @db.Decimal(12, 2)
+  coveragePct  Decimal  @map("coverage_pct") @db.Decimal(5, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, periodMonth])
   @@map("emission_summaries")
 }
 
 model RouteSummary {
-  id                      String    @id @default(uuid())
-  companyId               String    @map("company_id")
-  periodMonth             DateTime  @map("period_month")
-  originAirportId         String    @map("origin_airport_id")
-  destinationAirportId    String    @map("destination_airport_id")
-  flightsCount            Int       @map("flights_count")
-  emissionsTco2           Decimal   @map("emissions_tco2")
-  createdAt               DateTime  @default(now()) @map("created_at")
+  id                   String   @id @default(uuid()) @db.Uuid
+  companyId            String   @map("company_id") @db.Uuid
+  periodMonth          DateTime @map("period_month") @db.Date
+  originAirportId      String   @map("origin_airport_id") @db.Uuid
+  destinationAirportId String   @map("destination_airport_id") @db.Uuid
+  flightsCount         Int      @map("flights_count")
+  emissionsTco2        Decimal  @map("emissions_tco2") @db.Decimal(12, 2)
+  createdAt            DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company                 Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  originAirport           Airport   @relation("RouteOrigin", fields: [originAirportId], references: [id])
-  destinationAirport      Airport   @relation("RouteDestination", fields: [destinationAirportId], references: [id])
+  company            Company @relation(fields: [companyId], references: [id])
+  originAirport      Airport @relation("OriginRoutes", fields: [originAirportId], references: [id])
+  destinationAirport Airport @relation("DestinationRoutes", fields: [destinationAirportId], references: [id])
 
   @@unique([companyId, periodMonth, originAirportId, destinationAirportId])
   @@map("route_summaries")
 }
 
 model BatchSummary {
-  id              String        @id @default(uuid())
-  batchId         String        @unique @map("batch_id")
-  metricsJson     String?       @map("metrics_json") // JSON con estadísticas
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  batchId     String   @unique @map("batch_id") @db.Uuid
+  metricsJson String?  @map("metrics_json") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  batch           UploadBatch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch UploadBatch @relation(fields: [batchId], references: [id])
 
   @@map("batch_summaries")
 }
 
-// =====================================================
-// PRICING ESG Y PROYECTOS
-// =====================================================
-// Sistema de pricing basado en proyectos ESG con versionado
-
-model EsgProject {
-  id                          String                    @id @default(uuid())
-  name                        String
-  code                        String                    @unique // 'BOSQUE_ANDINO_001'
-  projectType                 String                    @map("project_type") // 'Forestal', 'Renovable'
-  description                 String?
-  country                     String
-  region                      String?
-  status                      ProjectStatus             @default(PLANNED)
-  providerOrganization        String                    @map("provider_organization")
-  certification               String?                   // 'VCS', 'Gold Standard'
-  coBenefits                  String?                   @map("co_benefits") // JSON array
-  currentBasePriceUsdPerTon   Decimal?                  @map("current_base_price_usd_per_ton")
-  transparencyUrl             String?                   @map("transparency_url")
-  createdAt                   DateTime                  @default(now()) @map("created_at")
-  updatedAt                   DateTime                  @updatedAt @map("updated_at")
-
-  // RELACIONES
-  pricingVersions             ProjectPricingVersion[]   // Versiones de pricing
-  evidence                    ProjectEvidence[]         // Evidencias del proyecto
-  metrics                     ProjectMetric[]           // Métricas de progreso
-  documents                   ProjectDocument[]         // Documentos
-  partners                    ProjectPartner[]          // Socios
-  certificateProjects         CertificateProject[]      // Certificados que usan este proyecto
-  pricingAudits               ProjectPricingAudit[]     // Auditoría de cambios
-
-  @@map("esg_projects")
-}
-
-model ProjectPricingVersion {
-  id                      String                  @id @default(uuid())
-  projectId               String                  @map("project_id")
-  versionName             String                  @map("version_name")
-  basePriceUsdPerTon      Decimal                 @map("base_price_usd_per_ton")
-  compensaMarginPercent   Decimal                 @map("compensa_margin_percent")
-  finalPriceUsdPerTon     Decimal                 @map("final_price_usd_per_ton")
-  effectiveFrom           DateTime                @map("effective_from")
-  effectiveTo             DateTime?               @map("effective_to")
-  status                  ProjectPricingStatus    @default(DRAFT)
-  createdBy               String                  @map("created_by")
-  reason                  String?                 // Motivo del cambio
-  createdAt               DateTime                @default(now()) @map("created_at")
-
-  // RELACIONES
-  project                 EsgProject              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator                 User                    @relation(fields: [createdBy], references: [id])
-  certificateProjects     CertificateProject[]    // Certificados que usaron esta versión
-  oldVersionAudits        ProjectPricingAudit[]   @relation("OldVersion")
-  newVersionAudits        ProjectPricingAudit[]   @relation("NewVersion")
-
-  @@map("project_pricing_versions")
-}
-
-model GlobalMarginConfig {
-  id                        String    @id @default(uuid())
-  defaultMarginPercent      Decimal   @map("default_margin_percent")
-  effectiveFrom             DateTime  @map("effective_from")
-  appliesToNewProjects      Boolean   @default(true) @map("applies_to_new_projects")
-  overrideExistingCustom    Boolean   @default(false) @map("override_existing_custom")
-  createdBy                 String    @map("created_by")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-
-  // RELACIONES
-  creator                   User      @relation(fields: [createdBy], references: [id])
-
-  @@map("global_margin_config")
-}
-
-// =====================================================
-// LEGACY PRICING (Mantenido para transición)
-// =====================================================
+// =========================
+// Compensación, pagos y facturación ESG
+// =========================
 
 model PricingTier {
-  id                    String                    @id @default(uuid())
-  code                  String                    @unique
-  name                  String
-  minTons               Decimal                   @map("min_tons")
-  maxTons               Decimal?                  @map("max_tons")
-  pricePerTon           Decimal                   @map("price_per_ton")
-  currency              String
-  active                Boolean                   @default(true)
-  createdAt             DateTime                  @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar
+  name        String   @db.VarChar
+  minTons     Decimal  @map("min_tons") @db.Decimal(10, 2)
+  maxTons     Decimal? @map("max_tons") @db.Decimal(10, 2)
+  pricePerTon Decimal  @map("price_per_ton") @db.Decimal(10, 2)
+  currency    String   @db.VarChar
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  companyOverrides      CompanyPricingOverride[]
-  compensationOrders    CompensationOrder[]
+  pricingOverrides   CompanyPricingOverride[]
+  compensationOrders CompensationOrder[]
 
   @@map("pricing_tiers")
 }
 
 model CompanyPricingOverride {
-  id              String        @id @default(uuid())
-  companyId       String        @map("company_id")
-  pricingTierId   String        @map("pricing_tier_id")
-  overridePrice   Decimal       @map("override_price")
-  validFrom       DateTime      @map("valid_from")
-  validTo         DateTime?     @map("valid_to")
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @map("company_id") @db.Uuid
+  pricingTierId String    @map("pricing_tier_id") @db.Uuid
+  overridePrice Decimal   @map("override_price") @db.Decimal(10, 2)
+  validFrom     DateTime  @map("valid_from")
+  validTo       DateTime? @map("valid_to")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  pricingTier     PricingTier   @relation(fields: [pricingTierId], references: [id])
+  company     Company     @relation(fields: [companyId], references: [id])
+  pricingTier PricingTier @relation(fields: [pricingTierId], references: [id])
 
   @@map("company_pricing_overrides")
 }
 
-// =====================================================
-// PAGOS Y FACTURACIÓN
-// =====================================================
+model ProjectPricingVersion {
+  id                       String               @id @default(uuid()) @db.Uuid
+  projectId                String               @map("project_id") @db.Uuid
+  versionName              String               @map("version_name") @db.VarChar
+  basePriceUsdPerTon       Decimal              @map("base_price_usd_per_ton") @db.Decimal(10, 2)
+  compensaMarginPercent    Decimal              @map("compensa_margin_percent") @db.Decimal(5, 2)
+  finalPriceUsdPerTon      Decimal              @map("final_price_usd_per_ton") @db.Decimal(10, 2)
+  effectiveFrom            DateTime             @map("effective_from")
+  effectiveTo              DateTime?            @map("effective_to")
+  status                   ProjectPricingStatus
+  createdBy                String               @map("created_by") @db.Uuid
+  reason                   String?              @db.Text
+  createdAt                DateTime             @default(now()) @map("created_at")
+
+  project                  EsgProject                @relation(fields: [projectId], references: [id])
+  creator                  User                      @relation(fields: [createdBy], references: [id])
+  certificateProjects      CertificateProject[]
+  projectPricingAuditsOld  ProjectPricingAudit[]     @relation("OldVersion")
+  projectPricingAuditsNew  ProjectPricingAudit[]     @relation("NewVersion")
+
+  @@map("project_pricing_versions")
+}
+
+model GlobalMarginConfig {
+  id                       String   @id @default(uuid()) @db.Uuid
+  defaultMarginPercent     Decimal  @map("default_margin_percent") @db.Decimal(5, 2)
+  effectiveFrom            DateTime @map("effective_from")
+  appliesToNewProjects     Boolean  @default(true) @map("applies_to_new_projects")
+  overrideExistingCustom   Boolean  @default(false) @map("override_existing_custom")
+  createdBy                String   @map("created_by") @db.Uuid
+  createdAt                DateTime @default(now()) @map("created_at")
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@map("global_margin_config")
+}
+
+model QuickCalculation {
+  id                          String         @id @default(uuid()) @db.Uuid
+  companyId                   String         @map("company_id") @db.Uuid
+  routeOrigin                 String         @map("route_origin") @db.VarChar
+  routeDestination            String         @map("route_destination") @db.VarChar
+  aircraftType                String         @map("aircraft_type") @db.VarChar
+  passengersTotal             Int            @map("passengers_total")
+  estimatedClassDistribution  Json?          @map("estimated_class_distribution")
+  distanceKm                  Decimal        @map("distance_km") @db.Decimal(10, 2)
+  emissionSource              EmissionSource @map("emission_source")
+  totalCo2Kg                  Decimal        @map("total_co2_kg") @db.Decimal(10, 2)
+  confidenceLevel             Decimal        @map("confidence_level") @db.Decimal(3, 2)
+  calculationDate             DateTime       @map("calculation_date")
+  apiResponseTimeMs           Int?           @map("api_response_time_ms")
+  createdAt                   DateTime       @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@map("quick_calculations")
+}
+
+model EmissionCalculationCache {
+  id              String   @id @default(uuid()) @db.Uuid
+  routeCacheId    String   @map("route_cache_id") @db.Uuid
+  aircraftType    String   @map("aircraft_type") @db.VarChar
+  passengersRange String   @map("passengers_range") @db.VarChar
+  emissionFactor  Decimal  @map("emission_factor") @db.Decimal(8, 5)
+  co2TotalKg      Decimal  @map("co2_total_kg") @db.Decimal(10, 2)
+  apiSource       String   @map("api_source") @db.VarChar
+  confidenceScore Decimal  @map("confidence_score") @db.Decimal(3, 2)
+  lastUsed        DateTime @map("last_used")
+  useCount        Int      @default(1) @map("use_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  routeCache RouteDistanceCache @relation(fields: [routeCacheId], references: [id])
+
+  @@unique([routeCacheId, aircraftType, passengersRange])
+  @@map("emission_calculation_cache")
+}
+
+model ApiConfiguration {
+  id                  String            @id @default(uuid()) @db.Uuid
+  providerName        String            @map("provider_name") @db.VarChar
+  endpointUrl         String            @map("endpoint_url") @db.VarChar
+  apiKeyReference     String            @map("api_key_reference") @db.VarChar
+  rateLimitPerHour    Int               @map("rate_limit_per_hour")
+  timeoutMs           Int               @default(5000) @map("timeout_ms")
+  status              ApiProviderStatus
+  lastHealthCheck     DateTime?         @map("last_health_check")
+  successRate24h      Decimal?          @map("success_rate_24h") @db.Decimal(3, 2)
+  avgResponseTimeMs   Int?              @map("avg_response_time_ms")
+  createdAt           DateTime          @default(now()) @map("created_at")
+
+  apiUsageLogs ApiUsageLog[]
+
+  @@map("api_configurations")
+}
 
 model Payment {
-  id                    String          @id @default(uuid())
-  companyId             String          @map("company_id")
-  provider              String          // 'stripe', 'transbank'
-  providerPaymentId     String          @unique @map("provider_payment_id")
-  amount                Decimal
-  currency              String
-  status                PaymentStatus   @default(PENDING)
-  paidAt                DateTime?       @map("paid_at")
-  createdAt             DateTime        @default(now()) @map("created_at")
+  id                String        @id @default(uuid()) @db.Uuid
+  companyId         String        @map("company_id") @db.Uuid
+  provider          String        @db.VarChar
+  providerPaymentId String        @unique @map("provider_payment_id") @db.VarChar
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @db.VarChar
+  status            PaymentStatus
+  paidAt            DateTime?     @map("paid_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
 
-  // RELACIONES
-  company               Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  invoice               Invoice?        // Factura asociada (1-a-1)
-  refunds               Refund[]        // Reembolsos
+  company Company  @relation(fields: [companyId], references: [id])
+  invoice Invoice?
+  refunds Refund[]
 
   @@map("payments")
 }
 
 model Invoice {
-  id              String    @id @default(uuid())
-  paymentId       String    @unique @map("payment_id")
-  folio           String?   // Número de factura SII
-  timbre          String?   // Timbre SII
-  pdfUrl          String?   @map("pdf_url")
-  totalAmount     Decimal   @map("total_amount")
-  currency        String
-  issuedAt        DateTime? @map("issued_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  paymentId   String   @unique @map("payment_id") @db.Uuid
+  folio       String   @db.VarChar
+  timbre      String   @db.VarChar
+  pdfUrl      String   @map("pdf_url") @db.VarChar
+  totalAmount Decimal  @map("total_amount") @db.Decimal(12, 2)
+  currency    String   @db.VarChar
+  issuedAt    DateTime @map("issued_at")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  payment         Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id])
 
   @@map("invoices")
 }
 
 model Refund {
-  id              String        @id @default(uuid())
-  paymentId       String        @map("payment_id")
-  amount          Decimal
-  status          RefundStatus  @default(REQUESTED)
-  requestedAt     DateTime      @default(now()) @map("requested_at")
-  processedAt     DateTime?     @map("processed_at")
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id          String       @id @default(uuid()) @db.Uuid
+  paymentId   String       @map("payment_id") @db.Uuid
+  amount      Decimal      @db.Decimal(12, 2)
+  status      RefundStatus
+  requestedAt DateTime     @map("requested_at")
+  processedAt DateTime?    @map("processed_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
 
-  // RELACIONES
-  payment         Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id])
 
   @@map("refunds")
 }
 
 model FxRate {
-  id              String    @id @default(uuid())
-  rateDate        DateTime  @map("rate_date")
-  baseCurrency    String    @map("base_currency")
-  quoteCurrency   String    @map("quote_currency")
-  rate            Decimal
-  source          String    // 'banco_central_chile', 'xe.com'
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  rateDate     DateTime @map("rate_date") @db.Date
+  baseCurrency String   @map("base_currency") @db.VarChar
+  quoteCurrency String  @map("quote_currency") @db.VarChar
+  rate         Decimal  @db.Decimal(12, 6)
+  source       String   @db.VarChar
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@unique([rateDate, baseCurrency, quoteCurrency])
   @@map("fx_rates")
 }
 
 model CompensationOrder {
-  id              String        @id @default(uuid())
-  companyId       String        @map("company_id")
-  periodMonth     DateTime      @map("period_month")
-  tonsTco2        Decimal       @map("tons_tco2")
-  amount          Decimal
-  currency        String
-  pricingTierId   String?       @map("pricing_tier_id")
-  status          String        @default("draft") // 'draft', 'confirmed', 'executed'
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  periodMonth   DateTime @map("period_month") @db.Date
+  tonsTco2      Decimal  @map("tons_tco2") @db.Decimal(10, 2)
+  amount        Decimal  @db.Decimal(12, 2)
+  currency      String   @db.VarChar
+  pricingTierId String   @map("pricing_tier_id") @db.Uuid
+  status        String   @db.VarChar
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  pricingTier     PricingTier?  @relation(fields: [pricingTierId], references: [id])
+  company     Company     @relation(fields: [companyId], references: [id])
+  pricingTier PricingTier @relation(fields: [pricingTierId], references: [id])
 
   @@map("compensation_orders")
 }
 
-// =====================================================
-// CERTIFICADOS Y TRANSPARENCIA
-// =====================================================
-
 model CertificateRequest {
-  id                          String        @id @default(uuid())
-  companyId                   String        @map("company_id")
-  scope                       String        // 'colectivo', 'por_ruta', 'mensual'
-  calculationMethodsBreakdown String?       @map("calculation_methods_breakdown") // JSON
-  message                     String?
-  language                    String        @default("es")
-  createdAt                   DateTime      @default(now()) @map("created_at")
+  id                          String   @id @default(uuid()) @db.Uuid
+  companyId                   String   @map("company_id") @db.Uuid
+  scope                       String   @db.VarChar
+  calculationMethodsBreakdown Json?    @map("calculation_methods_breakdown")
+  message                     String?  @db.Text
+  language                    String   @db.VarChar
+  createdAt                   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company                     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  certificates               Certificate[] // Certificados generados
+  company      Company       @relation(fields: [companyId], references: [id])
+  certificates Certificate[]
 
   @@map("certificate_requests")
 }
 
-model Certificate {
-  id                            String                @id @default(uuid())
-  companyId                     String                @map("company_id")
-  requestId                     String?               @map("request_id")
-  periodMonth                   DateTime              @map("period_month")
-  scope                         String
-  tonsCompensated               Decimal               @map("tons_compensated")
-  calculationMethodsBreakdown   String?               @map("calculation_methods_breakdown") // JSON
-  projectPricingVersionsUsed    String?               @map("project_pricing_versions_used") // JSON array
-  weightedAvgPriceUsdPerTon     Decimal?              @map("weighted_avg_price_usd_per_ton")
-  totalAmountUsd                Decimal?              @map("total_amount_usd")
-  totalAmountClp                Decimal?              @map("total_amount_clp")
-  number                        String                @unique // CERT-EMPRESA-AAAAMM-XXX
-  pdfUrl                        String?               @map("pdf_url")
-  qrCodeUrl                     String?               @map("qr_code_url")
-  status                        CertificateStatus     @default(DRAFT)
-  issuedAt                      DateTime?             @map("issued_at")
-  createdAt                     DateTime              @default(now()) @map("created_at")
+// =========================
+// Certificados y cadena de custodia
+// =========================
 
-  // RELACIONES
-  company                       Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  request                       CertificateRequest?   @relation(fields: [requestId], references: [id])
-  hash                          CertificateHash?      // Hash para verificación (1-a-1)
-  projects                      CertificateProject[]  // Proyectos incluidos
-  shareEvents                   ShareEvent[]          // Compartimientos en RRSS
+model Certificate {
+  id                             String            @id @default(uuid()) @db.Uuid
+  companyId                      String            @map("company_id") @db.Uuid
+  requestId                      String            @map("request_id") @db.Uuid
+  periodMonth                    DateTime          @map("period_month") @db.Date
+  scope                          String            @db.VarChar
+  tonsCompensated                Decimal           @map("tons_compensated") @db.Decimal(10, 2)
+  calculationMethodsBreakdown    Json?             @map("calculation_methods_breakdown")
+  projectPricingVersionsUsed     Json?             @map("project_pricing_versions_used")
+  weightedAvgPriceUsdPerTon      Decimal           @map("weighted_avg_price_usd_per_ton") @db.Decimal(10, 2)
+  totalAmountUsd                 Decimal           @map("total_amount_usd") @db.Decimal(12, 2)
+  totalAmountClp                 Decimal           @map("total_amount_clp") @db.Decimal(12, 2)
+  number                         String            @unique @db.VarChar
+  pdfUrl                         String?           @map("pdf_url") @db.VarChar
+  qrCodeUrl                      String?           @map("qr_code_url") @db.VarChar
+  status                         CertificateStatus
+  issuedAt                       DateTime?         @map("issued_at")
+  createdAt                      DateTime          @default(now()) @map("created_at")
+
+  company             Company              @relation(fields: [companyId], references: [id])
+  request             CertificateRequest   @relation(fields: [requestId], references: [id])
+  hash                CertificateHash?
+  projects            CertificateProject[]
+  shareEvents         ShareEvent[]
 
   @@map("certificates")
 }
 
 model CertificateHash {
-  id              String        @id @default(uuid())
-  certificateId   String        @unique @map("certificate_id")
-  hashValue       String        @map("hash_value") // SHA-256
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  certificateId String   @unique @map("certificate_id") @db.Uuid
+  hashValue     String   @map("hash_value") @db.VarChar
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  certificate     Certificate   @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  certificate Certificate @relation(fields: [certificateId], references: [id])
 
   @@map("certificate_hashes")
 }
 
 model CertificateProject {
-  certificateId             String                  @map("certificate_id")
-  projectId                 String                  @map("project_id")
-  projectPricingVersionId   String                  @map("project_pricing_version_id")
-  percentage                Decimal
-  allocationTons            Decimal                 @map("allocation_tons")
-  priceUsdPerTon            Decimal                 @map("price_usd_per_ton")
-  amountUsd                 Decimal                 @map("amount_usd")
-  projectNameSnapshot       String                  @map("project_name_snapshot")
-  createdAt                 DateTime                @default(now()) @map("created_at")
+  certificateId            String   @map("certificate_id") @db.Uuid
+  projectId                String   @map("project_id") @db.Uuid
+  projectPricingVersionId  String   @map("project_pricing_version_id") @db.Uuid
+  percentage               Decimal  @db.Decimal(5, 2)
+  allocationTons           Decimal  @map("allocation_tons") @db.Decimal(10, 2)
+  priceUsdPerTon           Decimal  @map("price_usd_per_ton") @db.Decimal(10, 2)
+  amountUsd                Decimal  @map("amount_usd") @db.Decimal(12, 2)
+  projectNameSnapshot      String   @map("project_name_snapshot") @db.VarChar
+  createdAt                DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  certificate               Certificate             @relation(fields: [certificateId], references: [id], onDelete: Cascade)
-  project                   EsgProject              @relation(fields: [projectId], references: [id])
-  pricingVersion            ProjectPricingVersion   @relation(fields: [projectPricingVersionId], references: [id])
+  certificate          Certificate           @relation(fields: [certificateId], references: [id])
+  project              EsgProject            @relation(fields: [projectId], references: [id])
+  pricingVersion       ProjectPricingVersion @relation(fields: [projectPricingVersionId], references: [id])
 
-  @@id([certificateId, projectId]) // Primary key compuesta
+  @@id([certificateId, projectId])
   @@map("certificate_projects")
 }
 
-// =====================================================
-// EVIDENCIA Y MÉTRICAS DE PROYECTOS ESG
-// =====================================================
+// =========================
+// Proyectos ESG y transparencia
+// =========================
+
+model EsgProject {
+  id                        String        @id @default(uuid()) @db.Uuid
+  name                      String        @db.VarChar
+  code                      String        @unique @db.VarChar
+  projectType               String        @map("project_type") @db.VarChar
+  description               String?       @db.Text
+  country                   String        @db.VarChar
+  region                    String?       @db.VarChar
+  status                    ProjectStatus
+  providerOrganization      String        @map("provider_organization") @db.VarChar
+  certification             String?       @db.VarChar
+  coBenefits                Json?         @map("co_benefits")
+  currentBasePriceUsdPerTon Decimal       @map("current_base_price_usd_per_ton") @db.Decimal(10, 2)
+  transparencyUrl           String?       @map("transparency_url") @db.VarChar
+  createdAt                 DateTime      @default(now()) @map("created_at")
+  updatedAt                 DateTime      @updatedAt @map("updated_at")
+
+  pricingVersions     ProjectPricingVersion[]
+  evidence            ProjectEvidence[]
+  metrics             ProjectMetric[]
+  documents           ProjectDocument[]
+  partners            ProjectPartner[]
+  certificateProjects CertificateProject[]
+  pricingAudits       ProjectPricingAudit[]
+
+  @@map("esg_projects")
+}
 
 model ProjectEvidence {
-  id              String      @id @default(uuid())
-  projectId       String      @map("project_id")
-  periodMonth     DateTime    @map("period_month")
-  photoUrl        String?     @map("photo_url")
-  metricName      String      @map("metric_name")
-  metricValue     Decimal     @map("metric_value")
-  note            String?
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  periodMonth DateTime @map("period_month") @db.Date
+  photoUrl    String?  @map("photo_url") @db.VarChar
+  metricName  String?  @map("metric_name") @db.VarChar
+  metricValue Decimal? @map("metric_value") @db.Decimal(12, 2)
+  note        String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  project         EsgProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project EsgProject @relation(fields: [projectId], references: [id])
 
   @@map("project_evidence")
 }
 
 model ProjectMetric {
-  id              String      @id @default(uuid())
-  projectId       String      @map("project_id")
-  metricName      String      @map("metric_name") // 'trees_planted', 'mwh_generated'
-  metricValue     Decimal     @map("metric_value")
-  recordedAt      DateTime    @map("recorded_at")
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  metricName  String   @map("metric_name") @db.VarChar
+  metricValue Decimal  @map("metric_value") @db.Decimal(12, 2)
+  recordedAt  DateTime @map("recorded_at") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  project         EsgProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project EsgProject @relation(fields: [projectId], references: [id])
 
   @@map("project_metrics")
 }
 
 model ProjectDocument {
-  id              String      @id @default(uuid())
-  projectId       String      @map("project_id")
-  fileId          String      @map("file_id")
-  docType         String      @map("doc_type") // 'certification', 'study', 'audit'
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  docType   String   @map("doc_type") @db.VarChar
+  createdAt DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  project         EsgProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  file            FileUpload  @relation(fields: [fileId], references: [id])
+  project EsgProject @relation(fields: [projectId], references: [id])
+  file    FileUpload @relation(fields: [fileId], references: [id])
 
   @@map("project_documents")
 }
 
 model ProjectPartner {
-  id                  String      @id @default(uuid())
-  projectId           String      @map("project_id")
-  organizationName    String      @map("organization_name")
-  partnerRole         String      @map("partner_role") // 'implementer', 'certifier', 'auditor'
-  createdAt           DateTime    @default(now()) @map("created_at")
+  id               String   @id @default(uuid()) @db.Uuid
+  projectId        String   @map("project_id") @db.Uuid
+  organizationName String   @map("organization_name") @db.VarChar
+  partnerRole      String   @map("partner_role") @db.VarChar
+  createdAt        DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  project             EsgProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project EsgProject @relation(fields: [projectId], references: [id])
 
   @@map("project_partners")
 }
 
-// =====================================================
-// RANKINGS Y GAMIFICACIÓN
-// =====================================================
+// =========================
+// Rankings y gamificación
+// =========================
 
 model RankingSnapshot {
-  id                String    @id @default(uuid())
-  periodMonth       DateTime  @map("period_month")
-  companyId         String    @map("company_id")
-  compensatedTons   Decimal   @map("compensated_tons")
-  coveragePct       Decimal   @map("coverage_pct")
-  score             Decimal   // Score calculado para ranking
-  segment           String    // 'airline', 'logistics', 'corporate'
-  rank              Int       // Posición en el ranking
-  createdAt         DateTime  @default(now()) @map("created_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  periodMonth     DateTime @map("period_month") @db.Date
+  companyId       String   @map("company_id") @db.Uuid
+  compensatedTons Decimal  @map("compensated_tons") @db.Decimal(10, 2)
+  coveragePct     Decimal  @map("coverage_pct") @db.Decimal(5, 2)
+  score           Decimal  @db.Decimal(10, 2)
+  segment         String   @db.VarChar
+  rank            Int
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
 
   @@unique([periodMonth, companyId])
   @@map("ranking_snapshots")
 }
 
 model BadgeDefinition {
-  id                String        @id @default(uuid())
-  code              String        @unique // 'PIONEER_ESG', 'MONTHLY_LEADER'
-  name              String
-  type              BadgeType
-  minThreshold      Decimal?      @map("min_threshold")
-  percentileRule    String?       @map("percentile_rule") // 'top_10_percent'
-  description       String?
-  createdAt         DateTime      @default(now()) @map("created_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  code           String    @unique @db.VarChar
+  name           String    @db.VarChar
+  type           BadgeType
+  minThreshold   Decimal?  @map("min_threshold") @db.Decimal(10, 2)
+  percentileRule String?   @map("percentile_rule") @db.VarChar
+  description    String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
 
-  // RELACIONES
-  companyBadges     CompanyBadge[]
+  companyBadges CompanyBadge[]
 
   @@map("badge_definitions")
 }
 
 model CompanyBadge {
-  id              String          @id @default(uuid())
-  companyId       String          @map("company_id")
-  badgeId         String          @map("badge_id")
-  earnedAt        DateTime        @map("earned_at")
-  expiresAt       DateTime?       @map("expires_at")
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  companyId String    @map("company_id") @db.Uuid
+  badgeId   String    @map("badge_id") @db.Uuid
+  earnedAt  DateTime  @map("earned_at")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  badge           BadgeDefinition @relation(fields: [badgeId], references: [id])
+  company Company         @relation(fields: [companyId], references: [id])
+  badge   BadgeDefinition @relation(fields: [badgeId], references: [id])
 
   @@unique([companyId, badgeId])
   @@map("company_badges")
 }
 
 model RankingJob {
-  id              String      @id @default(uuid())
-  periodMonth     DateTime    @map("period_month")
-  status          JobStatus   @default(QUEUED)
-  startedAt       DateTime?   @map("started_at")
-  finishedAt      DateTime?   @map("finished_at")
-  notes           String?
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id          String    @id @default(uuid()) @db.Uuid
+  periodMonth DateTime  @map("period_month") @db.Date
+  status      JobStatus
+  startedAt   DateTime  @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("ranking_jobs")
 }
 
-// =====================================================
-// SOCIAL/VIRAL Y WIDGETS
-// =====================================================
+// =========================
+// Social/Viral y Widgets
+// =========================
 
 model ShareEvent {
-  id              String        @id @default(uuid())
-  companyId       String        @map("company_id")
-  certificateId   String?       @map("certificate_id")
-  network         String        // 'linkedin', 'twitter', 'instagram'
-  sharedAt        DateTime      @map("shared_at")
-  reach           Int?          // Alcance si está disponible
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  certificateId String?  @map("certificate_id") @db.Uuid
+  network       String   @db.VarChar
+  sharedAt      DateTime @map("shared_at")
+  reach         Int?
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  certificate     Certificate?  @relation(fields: [certificateId], references: [id])
+  company     Company      @relation(fields: [companyId], references: [id])
+  certificate Certificate? @relation(fields: [certificateId], references: [id])
 
   @@map("share_events")
 }
 
 model ShareTemplate {
-  id              String    @id @default(uuid())
-  code            String    @unique
-  title           String
-  bodyTemplate    String    @map("body_template") // Template con variables {empresa}, {tons}
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @unique @db.VarChar
+  title        String   @db.VarChar
+  bodyTemplate String   @map("body_template") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("share_templates")
 }
 
 model Widget {
-  id              String    @id @default(uuid())
-  companyId       String    @map("company_id")
-  name            String
-  configJson      String    @map("config_json") // Configuración del widget
-  active          Boolean   @default(true)
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  name       String   @db.VarChar
+  configJson String?  @map("config_json") @db.Text
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
 
   @@map("widgets")
 }
 
 model ApiKey {
-  id              String    @id @default(uuid())
-  companyId       String    @map("company_id")
-  name            String
-  keyHash         String    @map("key_hash") // Hash de la clave, no la clave en sí
-  createdAt       DateTime  @default(now()) @map("created_at")
-  lastUsedAt      DateTime? @map("last_used_at")
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  name       String    @db.VarChar
+  keyHash    String    @map("key_hash") @db.VarChar
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
 
-  // RELACIONES
-  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
 
   @@map("api_keys")
 }
 
-// =====================================================
-// DOCUMENTOS Y MEDIA
-// =====================================================
+// =========================
+// Documentos y media
+// =========================
 
 model FileUpload {
-  id              String                @id @default(uuid())
-  ownerType       String                @map("owner_type") // 'company', 'project', 'certificate'
-  ownerId         String                @map("owner_id")
-  fileName        String                @map("file_name")
-  mimeType        String                @map("mime_type")
-  sizeBytes       Int                   @map("size_bytes")
-  storageUrl      String                @map("storage_url")
-  checksum        String                // Para verificar integridad
-  createdAt       DateTime              @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  ownerType  String   @map("owner_type") @db.VarChar
+  ownerId    String   @map("owner_id") @db.Uuid
+  fileName   String   @map("file_name") @db.VarChar
+  mimeType   String   @map("mime_type") @db.VarChar
+  sizeBytes  Int      @map("size_bytes")
+  storageUrl String   @map("storage_url") @db.VarChar
+  checksum   String   @db.VarChar
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  companyDocuments    CompanyDocument[]
-  projectDocuments    ProjectDocument[]
-  entityAttachments   EntityAttachment[]
+  companyDocuments  CompanyDocument[]
+  projectDocuments  ProjectDocument[]
+  entityAttachments EntityAttachment[]
 
   @@map("file_uploads")
 }
 
 model EntityAttachment {
-  id              String      @id @default(uuid())
-  entityType      String      @map("entity_type") // 'certificate', 'payment', etc.
-  entityId        String      @map("entity_id")
-  fileId          String      @map("file_id")
-  note            String?
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type") @db.VarChar
+  entityId   String   @map("entity_id") @db.Uuid
+  fileId     String   @map("file_id") @db.Uuid
+  note       String?  @db.VarChar
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  file            FileUpload  @relation(fields: [fileId], references: [id])
+  file FileUpload @relation(fields: [fileId], references: [id])
 
   @@map("entity_attachments")
 }
 
-// =====================================================
-// AUDITORÍA, SEGURIDAD Y OPERACIONES
-// =====================================================
+// =========================
+// Auditoría, seguridad y operaciones
+// =========================
 
 model AuditLog {
-  id              String    @id @default(uuid())
-  actorUserId     String?   @map("actor_user_id") // NULL para acciones del sistema
-  companyId       String?   @map("company_id") // Company que realizó la acción
-  action          String    // 'CREATE', 'UPDATE', 'DELETE'
-  entityType      String    @map("entity_type") // 'Company', 'Certificate', etc.
-  entityId        String    @map("entity_id")
-  changesJson     String?   @map("changes_json") // JSON con cambios realizados
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar
+  entityType  String   @map("entity_type") @db.VarChar
+  entityId    String   @map("entity_id") @db.Uuid
+  changesJson String?  @map("changes_json") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  actor           User?     @relation(fields: [actorUserId], references: [id])
-  company         Company?  @relation(fields: [companyId], references: [id])
+  actor User? @relation(fields: [actorUserId], references: [id])
 
-  @@index([entityType, entityId]) // Optimización para consultar logs de una entidad
   @@map("audit_logs")
 }
 
 model LoginEvent {
-  id              String      @id @default(uuid())
-  userId          String      @map("user_id")
-  companyId       String?     @map("company_id") // Company del usuario que se loguea
-  ip              String
-  userAgent       String      @map("user_agent")
-  result          LoginResult
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String?     @map("user_id") @db.Uuid
+  ip        String      @db.VarChar
+  userAgent String      @map("user_agent") @db.VarChar
+  result    LoginResult
+  createdAt DateTime    @default(now()) @map("created_at")
 
-  // RELACIONES
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company         Company?    @relation(fields: [companyId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@map("login_events")
 }
 
-// =====================================================
-// AUDITORÍA ESPECÍFICA PARA PRICING ESG
-// =====================================================
-
 model ProjectPricingAudit {
-  id                      String                  @id @default(uuid())
-  projectId               String                  @map("project_id")
-  oldVersionId            String?                 @map("old_version_id") // NULL para primera versión
-  newVersionId            String                  @map("new_version_id")
-  changedBy               String                  @map("changed_by")
-  changeReason            String?                 @map("change_reason")
-  oldValues               String?                 @map("old_values") // JSON snapshot
-  newValues               String                  @map("new_values") // JSON snapshot
-  affectedQuotesCount     Int?                    @map("affected_quotes_count")
-  changedAt               DateTime                @default(now()) @map("changed_at")
+  id                   String   @id @default(uuid()) @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  oldVersionId         String?  @map("old_version_id") @db.Uuid
+  newVersionId         String   @map("new_version_id") @db.Uuid
+  changedBy            String   @map("changed_by") @db.Uuid
+  changeReason         String?  @map("change_reason") @db.Text
+  oldValues            Json?    @map("old_values")
+  newValues            Json?    @map("new_values")
+  affectedQuotesCount  Int?     @map("affected_quotes_count")
+  changedAt            DateTime @map("changed_at")
 
-  // RELACIONES
-  project                 EsgProject              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  oldVersion              ProjectPricingVersion?  @relation("OldVersion", fields: [oldVersionId], references: [id])
-  newVersion              ProjectPricingVersion   @relation("NewVersion", fields: [newVersionId], references: [id])
-  changedByUser           User                    @relation(fields: [changedBy], references: [id])
+  project      EsgProject            @relation(fields: [projectId], references: [id])
+  oldVersion   ProjectPricingVersion? @relation("OldVersion", fields: [oldVersionId], references: [id])
+  newVersion   ProjectPricingVersion  @relation("NewVersion", fields: [newVersionId], references: [id])
+  changedByUser User            @relation("ChangedByUser", fields: [changedBy], references: [id])
+
 
   @@map("project_pricing_audit")
 }
 
 model ApiUsageLog {
-  id                      String            @id @default(uuid())
-  apiConfigurationId      String            @map("api_configuration_id")
-  companyId               String?           @map("company_id") // Para tracking por empresa
-  requestType             String            @map("request_type") // 'distance', 'emission'
-  requestParams           String?           @map("request_params") // JSON
-  responseStatusCode      Int               @map("response_status_code")
-  responseTimeMs          Int               @map("response_time_ms")
-  responseDataSizeBytes   Int?              @map("response_data_size_bytes")
-  costUsd                 Decimal?          @map("cost_usd") // Si la API es paga
-  cacheHit                Boolean           @default(false) @map("cache_hit")
-  createdAt               DateTime          @default(now()) @map("created_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  apiConfigurationId    String   @map("api_configuration_id") @db.Uuid
+  companyId             String?  @map("company_id") @db.Uuid
+  requestType           String   @map("request_type") @db.VarChar
+  requestParams         Json?    @map("request_params")
+  responseStatusCode    Int      @map("response_status_code")
+  responseTimeMs        Int      @map("response_time_ms")
+  responseDataSizeBytes Int      @map("response_data_size_bytes")
+  costUsd               Decimal? @map("cost_usd") @db.Decimal(10, 4)
+  cacheHit              Boolean  @default(false) @map("cache_hit")
+  createdAt             DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  apiConfiguration        ApiConfiguration  @relation(fields: [apiConfigurationId], references: [id])
-  company                 Company?          @relation(fields: [companyId], references: [id])
+  apiConfiguration ApiConfiguration @relation(fields: [apiConfigurationId], references: [id])
+  company          Company?         @relation(fields: [companyId], references: [id])
 
-  @@index([companyId, createdAt]) // Para analytics por empresa
   @@map("api_usage_logs")
 }
 
 model CompanyCalculationMetric {
-  id                          String    @id @default(uuid())
-  companyId                   String    @map("company_id")
-  periodMonth                 DateTime  @map("period_month")
-  manifestCalculationsCount   Int       @default(0) @map("manifest_calculations_count")
-  quickCalculationsCount      Int       @default(0) @map("quick_calculations_count")
-  totalApiCalls               Int       @default(0) @map("total_api_calls")
-  avgConfidenceScore          Decimal?  @map("avg_confidence_score")
-  totalCo2CalculatedTons      Decimal?  @map("total_co2_calculated_tons")
-  totalApiCostUsd             Decimal   @default(0) @map("total_api_cost_usd")
-  createdAt                   DateTime  @default(now()) @map("created_at")
+  id                        String   @id @default(uuid()) @db.Uuid
+  companyId                 String   @map("company_id") @db.Uuid
+  periodMonth               DateTime @map("period_month") @db.Date
+  manifestCalculationsCount Int      @default(0) @map("manifest_calculations_count")
+  quickCalculationsCount    Int      @default(0) @map("quick_calculations_count")
+  totalApiCalls             Int      @default(0) @map("total_api_calls")
+  avgConfidenceScore        Decimal? @map("avg_confidence_score") @db.Decimal(3, 2)
+  totalCo2CalculatedTons    Decimal? @map("total_co2_calculated_tons") @db.Decimal(12, 2)
+  totalApiCostUsd           Decimal  @default(0) @map("total_api_cost_usd") @db.Decimal(10, 2)
+  createdAt                 DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company                     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, periodMonth])
   @@map("company_calculation_metrics")
 }
 
-// =====================================================
-// WEBHOOKS E INTEGRACIONES
-// =====================================================
-
 model Webhook {
-  id              String        @id @default(uuid())
-  companyId       String        @map("company_id")
-  url             String
-  secret          String        // Para verificar autenticidad
-  active          Boolean       @default(true)
-  eventTypes      String        @map("event_types") // JSON array de eventos
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  url        String   @db.VarChar
+  secret     String   @db.VarChar
+  active     Boolean  @default(true)
+  eventTypes String?  @map("event_types") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  logs            WebhookLog[]  // Logs de entregas
+  company Company      @relation(fields: [companyId], references: [id])
+  logs    WebhookLog[]
 
   @@map("webhooks")
 }
 
 model WebhookLog {
-  id              String    @id @default(uuid())
-  webhookId       String    @map("webhook_id")
-  statusCode      Int       @map("status_code")
-  requestBody     String?   @map("request_body")
-  responseBody    String?   @map("response_body")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  webhookId    String   @map("webhook_id") @db.Uuid
+  statusCode   Int      @map("status_code")
+  requestBody  String?  @map("request_body") @db.Text
+  responseBody String?  @map("response_body") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  // RELACIONES
-  webhook         Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  webhook Webhook @relation(fields: [webhookId], references: [id])
 
   @@map("webhook_logs")
 }
 
-// =====================================================
-// COLA DE JOBS
-// =====================================================
-
 model JobsQueue {
-  id              String      @id @default(uuid())
-  jobType         String      @map("job_type") // 'process_manifest', 'calculate_ranking'
-  payloadJson     String      @map("payload_json") // Datos del job
-  status          JobStatus   @default(QUEUED)
-  attempts        Int         @default(0)
-  scheduledAt     DateTime    @map("scheduled_at")
-  startedAt       DateTime?   @map("started_at")
-  finishedAt      DateTime?   @map("finished_at")
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id          String    @id @default(uuid()) @db.Uuid
+  jobType     String    @map("job_type") @db.VarChar
+  payloadJson String?   @map("payload_json") @db.Text
+  status      JobStatus
+  attempts    Int
+  scheduledAt DateTime  @map("scheduled_at")
+  startedAt   DateTime? @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
-  @@index([status, scheduledAt]) // Para procesar jobs en orden
   @@map("jobs_queue")
 }

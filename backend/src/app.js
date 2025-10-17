@@ -242,10 +242,10 @@ class App {
   }
 
   /**
-   * 🚦 Configuración de rate limiting
+   * Configuración de rate limiting
    */
   setupRateLimiting() {
-    // 1️⃣ Rate limiter general (para todas las rutas)
+    // 1️ Rate limiter general (para todas las rutas)
     const generalLimiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
       max: 1000,                 // 1000 requests por IP por ventana
@@ -277,14 +277,14 @@ class App {
 
     this.app.use(generalLimiter);
 
-    // 2️⃣ Rate limiter específico para authentication
+    // 2️ Rate limiter específico para authentication
     this.app.use('/api/auth', createDynamicRateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
       max: 20,                  // 20 requests por ventana para auth
       prefix: 'auth_rl'
     }));
 
-    // 3️⃣ Rate limiter para uploads (más restrictivo)
+    // 3️ Rate limiter para uploads (más restrictivo)
     const uploadLimiter = rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
       max: 50,                  // 50 uploads por hora
@@ -298,10 +298,10 @@ class App {
   }
 
   /**
-   * 🛣️ Configuración de rutas principales
+   *  Configuración de rutas principales
    */
   setupRoutes() {
-    // 1️⃣ Health check endpoint (siempre debe estar disponible)
+    // 1️ Health check endpoint (siempre debe estar disponible)
     this.app.get('/health', async (req, res) => {
       try {
         // Verificar conexión a base de datos
@@ -327,7 +327,7 @@ class App {
       }
     });
 
-    // 2️⃣ API de información básica (sin autenticación)
+    // 2️ API de información básica (sin autenticación)
     this.app.get('/api/info', (req, res) => {
       res.json({
         success: true,
@@ -361,7 +361,7 @@ class App {
       });
     });
 
-    // 5️⃣ Rutas de administración (requieren rol específico)
+    // 5️ Rutas de administración (requieren rol específico)
     this.app.use('/api/admin', authenticate, checkRole(['COMPANY_ADMIN', 'SUPER_ADMIN']));
     
     this.app.get('/api/admin/stats', async (req, res) => {
@@ -382,7 +382,7 @@ class App {
       }
     });
 
-    // 6️⃣ Endpoint para testing de RBAC
+    // 6️ Endpoint para testing de RBAC
     this.app.get('/api/admin/users', 
       authenticate, 
       checkPermission('users:read'),
