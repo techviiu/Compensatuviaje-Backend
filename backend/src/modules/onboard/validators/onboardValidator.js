@@ -6,8 +6,8 @@
  * - validar workflow de estado
  */
 
-const {body, validationResult} = require('express-validator');
-const {validateRut} = require('./rutValidator');
+import {body, validationResult} from 'express-validator';
+import {validateRutResult} from '../validators/rutValidator.js';
 /**
  * Validaciones para registro inicial de la empresa
  */
@@ -23,7 +23,7 @@ const validateCompanyRegistration = [
 
     body('rut')
         .custom((value) =>{
-            const validation = validateRut(value);
+            const validation = validateRutResult(value);
             if(!validation.isValid){
                 throw new Error(`RUT invalido. ${validation.errors.join(', ')}`)
             }
@@ -166,7 +166,7 @@ const validateCompanyStatusChange = [
         .isIn(['registered', 'pending_contract', 'signed', 'active', 'suspend'])
         .withMessage('Estado origen enválido'),
     body('toStatus')
-        .inIn(['registered', 'pending_contract', 'signed', 'active', 'suspend'])
+        .isIn(['registered', 'pending_contract', 'signed', 'active', 'suspend'])
         .withMessage("Estado destino inválido"),
 
     body('note')
@@ -202,7 +202,7 @@ const handleValidationErrors = (req, res, next) =>{
  * Validar transición de estados válida
  */
 
-const validateStatusTransition = (fromStatus, toStatu) =>{
+const validateStatusTransition = (fromStatus, toStatus) =>{
     const validTransitions = {
         'registered': ['pending_contract', 'suspend'],
         'pending_contract': ['signed', 'registered', 'suspend'],
@@ -220,7 +220,7 @@ const isValidCorporateEmail = (email, companyDomains) =>{
     return companyDomains.some(domain = domain.domain.toLowerCase() === emailDomain && domain.verified); 
 };
 
-module.exports = {
+export  {
     validateCompanyRegistration,
     validateCompanyUpdate,
     validateCorporateDomain,

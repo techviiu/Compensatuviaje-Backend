@@ -126,8 +126,7 @@ const logger = createLogger();
 const info = (message, meta = {}) => {
   logger.info(message, {
     ...meta,
-    timestamp: new Date().toISOString(),
-    component: meta.component || 'unknown'
+   
   });
 };
 
@@ -137,8 +136,7 @@ const info = (message, meta = {}) => {
 const warn = (message, meta = {}) => {
   logger.warn(message, {
     ...meta,
-    timestamp: new Date().toISOString(),
-    component: meta.component || 'unknown'
+
   });
 };
 
@@ -148,8 +146,6 @@ const warn = (message, meta = {}) => {
 const error = (message, meta = {}) => {
   logger.error(message, {
     ...meta,
-    timestamp: new Date().toISOString(),
-    component: meta.component || 'unknown',
     // 💡 En errores, siempre incluir información del ambiente
     environment: process.env.NODE_ENV || 'development',
     node_version: process.version
@@ -163,8 +159,7 @@ const debug = (message, meta = {}) => {
   if (process.env.LOG_LEVEL === 'debug') {
     logger.debug(message, {
       ...meta,
-      timestamp: new Date().toISOString(),
-      component: meta.component || 'unknown'
+    
     });
   }
 };
@@ -175,9 +170,9 @@ const debug = (message, meta = {}) => {
 const security = (message, meta = {}) => {
   logger.warn(`[SECURITY] ${message}`, {
     ...meta,
-    timestamp: new Date().toISOString(),
+  
     security_event: true,
-    component: meta.component || 'security'
+    
   });
 };
 
@@ -191,8 +186,7 @@ const performance = (operation, duration, meta = {}) => {
     ...meta,
     operation: operation,
     duration_ms: duration,
-    timestamp: new Date().toISOString(),
-    component: meta.component || 'performance'
+   
   });
 };
 
@@ -211,7 +205,7 @@ const request = (req, res, duration) => {
     user_agent: req.get('User-Agent'),
     user_id: req.user?.user_id,
     company_id: req.user?.company_id,
-    timestamp: new Date().toISOString(),
+   
     component: 'http'
   });
 };
@@ -225,7 +219,6 @@ const database = (operation, query, duration, meta = {}) => {
     operation: operation,
     query: query,
     duration_ms: duration,
-    timestamp: new Date().toISOString(),
     component: 'database'
   });
 };

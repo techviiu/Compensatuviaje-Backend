@@ -1,230 +1,330 @@
 /**
- * De esta manera controlaremos los roles y permisos
- * Verifica que cada usuaior tenga persmisos para cualquier accion
- * Loggin de intento de acceso denegado para seguridad
  * 
+ * Control de acceso basado en roles y permisos
+ * Actualizado para soportar SuperAdmin sin empresa
+ * 
+ * USO EN OTROS MÓDULOS:
+ * - MOD-AUTH: Control interno
+ * - MOD-ONBOARD: Verificación permisos registro empresas
+ * - MOD-UPLOAD: Control carga manifiestos
+ * - MOD-CERTIFICATES: Generación y gestión certificados
+ * - Todos los módulos futuros
  */
 
+const { PrismaClient } = require('@prisma/client');
 const logger = require('../../../utils/logger');
 
+const prisma = new PrismaClient();
+
 /**
- * @param {string|string[]} requiredPermissions - Permisos requeridos
- * @param {object} iptions - Opciones adicinales
- * @returns {Function} Middleware function
+ * Verificar que el usuario tiene los permisos requeridos
+ * @param {Array} requiredPermissions - Array de códigos de permisos requeridos
  */
-
-const checkPermission = (requiredPermissions, options = {})=>{
-  return (req, res, next) =>{
+const requirePermissions = (requiredPermissions) => {
+  return async (req, res, next) => {
     try {
-      // 1️  Verificar que el usuario esté autenticado
-      if(!req.user){
-        logger.warn('RBAC check without authentication', {
-          path: req.path,
-          method: req.method,
-          ip: req.ip
-        })
+      const userId = req.user.id;
 
-        return res.status(401).json({
-          success: false,
-          error_code: 'AUTHENTICATION_REQUIRED',
-          error_message: 'Debe iniciar sesión'
-        })
+      // SuperAdmin tiene todos los permisos automáticamente
+      if (await checkIfSuperAdmin(userId)) {
+        req.user.isSuperAdmin = true;
+        req.user.permissions = ['*']; // Wildcard para todos los permisos
+        
+        logger.debug('SuperAdmin access granted', {
+          userId,
+          requiredPermissions,
+          url: req.url
+        });
+        
+        return next();
       }
 
-      //  2️ convertimos en array 
-      const permissions = Array.isArray(requiredPermissions)
-      ? requiredPermissions
-      : [requiredPermissions];
-      
-      // 3️  Obtener permisos del usuario desde el token
-      const userPermissions = req.user.permissions || [];
-      
-      // 4️ Verificar permisos 
-            const strategy = options.strategy || 'any'; // 'any' | 'all'
-      let hasPermission = false;
+      // Obtener permisos del usuario a través de sus roles en empresas
+      const userPermissions = await getUserPermissions(userId);
 
-      if (strategy === 'all') {
-        // Usuario debe tener TODOS los permisos requeridos
-        hasPermission = permissions.every(perm => userPermissions.includes(perm));
-      } else {
-        // Usuario debe tener AL MENOS UNO de los permisos (por defecto)
-        hasPermission = permissions.some(perm => userPermissions.includes(perm));
-      }
+      // Verificar si tiene todos los permisos requeridos
+      const hasAllPermissions = requiredPermissions.every(permission =>
+        userPermissions.includes(permission)
+      );
 
-      
-      //  MVP REAL INCLUIRÍA VERIFICACIÓN DE SCOPE:
-      // 5️ Verificar scope de permisos (global vs company)
-      if (!hasPermission) {
+      if (!hasAllPermissions) {
         logger.warn('Permission denied', {
-          user_id: req.user.user_id,
-          company_id: req.user.company_id,
-          required_permissions: permissions,
-          user_permissions: userPermissions,
-          path: req.path,
+          userId,
+          requiredPermissions,
+          userPermissions,
+          url: req.url,
           method: req.method,
           ip: req.ip
         });
-
-        //  MVP REAL INCLUIRÍA:
-        // await securityService.recordUnauthorizedAccess({
 
         return res.status(403).json({
           success: false,
-          error_code: 'INSUFFICIENT_PERMISSIONS',
-          error_message: 'Permisos insuficientes para esta acción',
-          required_permissions: permissions // Solo en desarrollo
+          message: 'No tienes permisos suficientes para esta acción',
+          required: requiredPermissions,
+          missing: requiredPermissions.filter(p => !userPermissions.includes(p))
         });
       }
 
-      // 6️ log de acceso autoizado
-      if(process.env.LOG_LEVEL == 'debug'){
-        logger.debug('Permission granted', {
-          user_id: req.user.user_id,
-          permissions_checked: permissions,
-          path: req.path,
-          method: req.method
-        })
-      }
-
+      // Agregar permisos al request para uso posterior
+      req.user.permissions = userPermissions;
+      
+      logger.debug('Permission granted', {
+        userId,
+        permissions: requiredPermissions,
+        url: req.url
+      });
+      
       next();
 
-  
-        
     } catch (error) {
-       logger.error('RBAC middleware error', {
+      logger.error('Error checking permissions', {
         error: error.message,
-        user_id: req.user?.user_id,
-        required_permissions: requiredPermissions,
-        path: req.path,
-        ip: req.ip
-       });
+        userId: req.user?.id,
+        stack: error.stack
+      });
 
-       res.status(500).json({
+      res.status(500).json({
         success: false,
-        error_code: 'AUTHORIZATION_SYSTEM_ERROR',
-        error_message: 'Error interno de autorización'
-       });
+        message: 'Error verificando permisos'
+      });
     }
   };
 };
 
 /**
- * Verificamos los roles específicos
- * @param {string | string[]} requiredRoles - Roloes requeridos
- * @returns {Function} Middleware function
+ * Verificar si el usuario es SuperAdmin
+ * @param {string} userId - ID del usuario
+ * @returns {boolean} true si es SuperAdmin
  */
+const checkIfSuperAdmin = async (userId) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
 
-const checkRole = (requiredRoles) =>{
-  return (req, res, next)=>{
-    try {
-      if(!req.user){
-        return res.status(401).json({
-        success: false,
-        error_code: 'AUTHENTICATION_REQUIRED',
-        error_message: 'Debe iniciar sesión'
+    // SuperAdmin identificado por email configurado en .env
+    const superAdminEmail = process.env.SUPERADMIN_EMAIL || 'admin@compensatuviaje.com';
+    
+    return user?.email === superAdminEmail;
+    
+  } catch (error) {
+    logger.error('Error checking SuperAdmin', { 
+      error: error.message,
+      userId 
+    });
+    return false;
+  }
+};
+
+/**
+ * Obtener todos los permisos del usuario
+ * @param {string} userId - ID del usuario
+ * @returns {Array} Array de códigos de permisos
+ */
+const getUserPermissions = async (userId) => {
+  try {
+    const companyUsers = await prisma.companyUser.findMany({
+      where: {
+        userId,
+        status: 'active'
+      },
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Extraer permisos únicos de todos los roles
+    const permissions = new Set();
+
+    companyUsers.forEach(companyUser => {
+      companyUser.roles.forEach(userRole => {
+        userRole.role.permissions.forEach(rolePermission => {
+          permissions.add(rolePermission.permission.code);
+        });
       });
+    });
+
+    return Array.from(permissions);
+
+  } catch (error) {
+    logger.error('Error getting user permissions', {
+      error: error.message,
+      userId
+    });
+    return [];
+  }
+};
+
+/**
+ * Verificar que el usuario tiene al menos uno de los roles especificados
+ * @param {Array} allowedRoles - Array de códigos de roles permitidos
+ */
+const requireRole = (allowedRoles) => {
+  return async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+
+      // SuperAdmin bypasses role check
+      if (await checkIfSuperAdmin(userId)) {
+        req.user.isSuperAdmin = true;
+        req.user.roles = ['SUPERADMIN'];
+        return next();
       }
 
-      const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
-      const userRole = req.user.role;
-      // aqui sabremos si tiene el rol necesesario:
-      if (!roles.includes(userRole)) {
-        logger.warn('Role access denied', {
-          user_id: req.user.user_id,
-          user_role: userRole,
-          required_roles: roles,
-          path: req.path,
-          method: req.method,
+      const userRoles = await getUserRoles(userId);
+
+      const hasRole = userRoles.some(role => allowedRoles.includes(role));
+
+      if (!hasRole) {
+        logger.warn('Role check failed', {
+          userId,
+          requiredRoles: allowedRoles,
+          userRoles,
+          url: req.url,
           ip: req.ip
         });
+
         return res.status(403).json({
           success: false,
-          error_code: 'INSUFFICIENT_ROLE',
-          error_message: `Requiere uno de los roles: ${roles.join(', ')}`,
-          current_role: userRole
+          message: 'No tienes el rol necesario para esta acción',
+          required: allowedRoles,
+          current: userRoles
         });
       }
+
+      req.user.roles = userRoles;
       next();
 
     } catch (error) {
-      logger.error('Role check middleware error', {
-             error: error.message,
-        user_id: req.user?.user_id,
-        path: req.path
+      logger.error('Error checking roles', {
+        error: error.message,
+        userId: req.user?.id
       });
 
       res.status(500).json({
         success: false,
-        error_code: 'SYSTEM_ERROR',
-        error_message: 'Error interno del sistema'
+        message: 'Error verificando roles'
       });
     }
-  }
-}
+  };
+};
 
 /**
- *  Verificar que es Admin de la empresa
- * 
- * Shortcut para verificar is_admin flag
+ * Obtener roles del usuario
+ * @param {string} userId - ID del usuario
+ * @returns {Array} Array de códigos de roles
  */
-const requireCompanyAdmin = (req, res, next) =>{
+const getUserRoles = async (userId) => {
   try {
-    if(!req.user) {
-      return res.status(401).json({
+    const companyUsers = await prisma.companyUser.findMany({
+      where: {
+        userId,
+        status: 'active'
+      },
+      include: {
+        roles: {
+          include: {
+            role: true
+          }
+        }
+      }
+    });
+
+    const roles = new Set();
+
+    companyUsers.forEach(companyUser => {
+      companyUser.roles.forEach(userRole => {
+        roles.add(userRole.role.code);
+      });
+    });
+
+    return Array.from(roles);
+
+  } catch (error) {
+    logger.error('Error getting user roles', {
+      error: error.message,
+      userId
+    });
+    return [];
+  }
+};
+
+/**
+ * Verificar que el usuario es admin de la empresa especificada
+ * Usado en conjunto con checkCompanyAccess del módulo onboard
+ */
+const requireCompanyAdmin = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // SuperAdmin siempre tiene acceso admin
+    if (await checkIfSuperAdmin(userId)) {
+      req.user.isSuperAdmin = true;
+      return next();
+    }
+
+    // Verificar que userCompany existe (debe venir de checkCompanyAccess middleware)
+    if (!req.userCompany) {
+      return res.status(403).json({
         success: false,
-        error_code: 'AUTHENTICATION_REQUIRED',
-        error_message: 'Debe iniciar sesión'
+        message: 'No tienes acceso a esta empresa'
       });
     }
 
-    // esto es clave
-    if(!req.user.is_admin){
+    // Verificar que es admin de la empresa
+    if (!req.userCompany.isAdmin) {
       logger.warn('Company admin required', {
-        user_id: req.user.user_id,
-        company_id: req.user.company_id,
-        is_admin: req.user.is_admin,
-        path: req.path,
-        ip: req.ip
-      })
+        userId,
+        companyId: req.params.id,
+        isAdmin: req.userCompany.isAdmin
+      });
+
       return res.status(403).json({
         success: false,
-        error_code: 'COMPANY_ADMIN_REQUIRED',
-        error_message:  'Requiere permisos de administrado de la empresa'
+        message: 'Requiere permisos de administrador de la empresa'
       });
     }
+
     next();
+
   } catch (error) {
-    logger.error('Company admin middleware error', {
+    logger.error('Error checking company admin', {
       error: error.message,
-      user_id: req.user?.user_id
+      userId: req.user?.id
     });
 
     res.status(500).json({
       success: false,
-      error_code: 'SYSTEM_ERROR',
-      error_message: 'Error interno del sistema'
+      message: 'Error verificando permisos de administrador'
     });
   }
 };
 
 /**
- * Verificar Admin del Sistema (cross-company)
+ * Middleware dinámico de permisos basado en recurso
+ * Útil para rutas RESTful estándar
  * 
- * Solo para operaciones que afectan múltiples empresas
- */
-const requireSystemAdmin = checkRole('admin_system');
-
-/**
- *  Middleware dinámico de permisos basado en recurso
- * 
- *  MVP REAL: Permisos dinámicos según el recurso accedido
+ * @param {string} resourceType - Tipo de recurso (ej: 'companies', 'documents')
  */
 const checkResourcePermission = (resourceType) => {
   return (req, res, next) => {
     try {
       // Mapeo dinámico de método HTTP a acción de permiso
       const actionMap = {
-        'GET': 'view',
+        'GET': 'read',
         'POST': 'create',
         'PUT': 'update',
         'PATCH': 'update',
@@ -232,63 +332,81 @@ const checkResourcePermission = (resourceType) => {
       };
 
       const action = actionMap[req.method] || 'access';
-      const permission = `${action}_${resourceType}`; // ej: "view_manifests", "create_certificates"
+      const permission = `${resourceType}.${action}`; // ej: "companies.read", "documents.create"
 
-      // Reutilizar checkPermission con el permiso dinámico
-      return checkPermission([permission])(req, res, next);
+      // Reutilizar requirePermissions con el permiso dinámico
+      return requirePermissions([permission])(req, res, next);
 
     } catch (error) {
       logger.error('Resource permission middleware error', {
         error: error.message,
-        resource_type: resourceType,
+        resourceType,
         method: req.method,
         path: req.path
       });
 
       res.status(500).json({
         success: false,
-        error_code: 'SYSTEM_ERROR',
-        error_message: 'Error interno del sistema'
+        message: 'Error verificando permisos de recurso'
       });
     }
   };
 };
 
-// MVP REAL INCLUIRÍA PERMISOS ESPECÍFICOS POR MÓDULO:
-// Shortcuts comunes para los módulos principales
+/**
+ * Shortcuts comunes para permisos frecuentes
+ * Facilita el uso en las rutas
+ */
 const permissions = {
-  // Manifiestos y vuelos
-  canUploadManifests: checkPermission(['upload_manifest']),
-  canViewDashboard: checkPermission(['view_dashboard']),
+  // Autenticación básica
+  authenticated: requirePermissions(['auth.login']),
   
-  // Certificados
-  canGenerateCertificates: checkPermission(['generate_certificate']),
-  canRevokeCertificates: checkPermission(['revoke_certificate']),
+  // Empresas
+  canCreateCompany: requirePermissions(['companies.create']),
+  canReadCompany: requirePermissions(['companies.read']),
+  canUpdateCompany: requirePermissions(['companies.update']),
+  canVerifyCompany: requirePermissions(['companies.verify']),
   
-  // Gestión de usuarios
-  canManageUsers: checkPermission(['manage_company_users']),
-  canViewAllData: checkPermission(['view_all_data']),
+  // Documentos
+  canUploadDocument: requirePermissions(['uploads.create']),
+  canReadDocument: requirePermissions(['uploads.read']),
   
-  // Configuración
-  canConfigurePricing: checkPermission(['configure_pricing']),
-  canManageProjects: checkPermission(['create_projects', 'manage_projects'], { strategy: 'any' }),
+  // Usuarios
+  canManageUsers: requirePermissions(['users.create', 'users.update', 'users.delete']),
+  canReadUsers: requirePermissions(['users.read']),
   
-  // Moderación
-  canModerateProfiles: checkPermission(['moderate_profiles']),
+  // Cálculos y certificados
+  canCalculateEmissions: requirePermissions(['calculations.read']),
+  canExportReports: requirePermissions(['calculations.export']),
+  canCreateCertificate: requirePermissions(['certificates.create']),
+  canReadCertificate: requirePermissions(['certificates.read']),
   
-  // Recursos específicos
-  manifests: checkResourcePermission('manifests'),
-  certificates: checkResourcePermission('certificates'),
-  companies: checkResourcePermission('companies'),
-  projects: checkResourcePermission('projects')
+  // Pagos
+  canProcessPayment: requirePermissions(['payments.create']),
+  canReadPayment: requirePermissions(['payments.read']),
+  
+  // Admin
+  canAccessAdmin: requirePermissions(['admin.system']),
+  canViewAudit: requirePermissions(['admin.audit']),
+  canManageCatalogs: requirePermissions(['admin.catalogs'])
 };
 
-
 module.exports = {
-  checkPermission,
-  checkRole,
+  // Funciones principales
+  requirePermissions,
+  requireRole,
   requireCompanyAdmin,
-  requireSystemAdmin,
   checkResourcePermission,
-  permissions
+  
+  // Helpers
+  checkIfSuperAdmin,
+  getUserPermissions,
+  getUserRoles,
+  
+  // Shortcuts
+  permissions,
+  
+  // Backwards compatibility con tu código actual
+  checkPermission: requirePermissions,
+  checkRole: requireRole
 };

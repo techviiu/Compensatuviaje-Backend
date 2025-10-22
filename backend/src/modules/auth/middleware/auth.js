@@ -297,4 +297,3 @@ const extractCompanyMiddleware = async (req, res, next) =>{
 };
 
 module.exports = { authMiddleware, authenticate: authMiddleware, optionalAuthMiddleware, extractCompanyMiddleware };
-module.exports = { authMiddleware, authenticate: authMiddleware, optionalAuthMiddleware, extractCompanyMiddleware };

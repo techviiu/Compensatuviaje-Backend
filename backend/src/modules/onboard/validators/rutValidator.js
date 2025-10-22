@@ -29,7 +29,9 @@ const cleanRut = (rut) =>{
  */
 const calculateDV = (rutBase) =>{
     // utilizamos la biblioteca para validar excepciones
-   return  validateRut(rutBase);
+   const respuesta = validateRut(rutBase, false);
+   console.log('👌', respuesta, rutBase)
+   return  respuesta;
 }
 
 /**
@@ -55,7 +57,7 @@ const formatRut = (cleanRut) => {
  * @returns {Object} Resultado de validación
  */
 
-const validateRut = (rut) =>{
+const validateRutResult = (rut) =>{
     const result = {
         isValid: false,
         errors: [],
@@ -102,7 +104,7 @@ const validateRut = (rut) =>{
         result.errors.push('RUT fuera de rango valido')
         return result;
     }
-     const validateDV = calculateDV(rutBase);
+     const validateDV = calculateDV(rut);
      if(validateDV == false){
         result.errors.push('Digito verificador invalido');
         return result;
@@ -124,7 +126,7 @@ const validateRutMiddleware = (fieldName = 'rut') =>{
         const rut = req.body[fieldName];
         const validation = validateRut(rut);
 
-        if(!validateRut.isValid){
+        if(!validateRutResult.isValid){
             return res.status(400).json({
                 success: false,
                 message: 'RUT inválido',
@@ -161,11 +163,11 @@ const isCompanyRut = (rut) =>{
     return rutNumber >= 50000000;
 }
 
-module.exports = {
+export {
     cleanRut,
     calculateDV,
     formatRut,
-    validateRut,
+    validateRutResult,
     validateRutMiddleware,
     isCompanyRut
 };
