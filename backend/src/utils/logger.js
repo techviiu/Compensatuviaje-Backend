@@ -6,32 +6,14 @@
  * - Diferentes niveles de log (debug, info, warn, error)
  * - Formateo consistente de mensajes
  * - Rotación de archivos para evitar llenar disco
- * 
- * ¿Por qué es crítico?
- * - Debugging: Rastrear problemas en producción
- * - Monitoring: Detectar patrones y tendencias
- * - Compliance: Evidencia de operaciones del sistema
- * - Performance: Identificar operaciones lentas
- * 
- * ¿Cómo se conecta?
- * - Todos los módulos importan logger para registrar eventos
- * - Middleware registra requests automáticamente
- * - Services registran operaciones importantes
- * - Controllers registran errores y éxitos
+
  */
 
 const winston = require('winston');
 const path = require('path');
 
-/**
- * 📊 Configuración de niveles de log
- * 
- * ¿Qué significa cada nivel?
- * - error: Errores críticos que requieren atención inmediata
- * - warn: Situaciones anómalas pero no críticas
- * - info: Información general de operaciones
- * - debug: Información detallada para desarrollo
- */
+
+
 const logLevels = {
   error: 0,
   warn: 1,
@@ -53,20 +35,12 @@ const logFormat = winston.format.combine(
   winston.format.prettyPrint() // Formato legible para desarrollo
 );
 
-/**
- * 📁 Configuración de archivos de log
- * 
- * ¿Por qué separar por nivel?
- * - Errores van a archivo separado para revisión rápida
- * - Logs generales van a archivo combinado
- * - Rotación automática previene archivos gigantes
- */
+
 const createLogger = () => {
   // 📂 Asegurar que directorio de logs existe
   const logsDir = path.join(__dirname, '../../../logs');
   
   const transports = [
-    // 🖥️ Console para desarrollo
     new winston.transports.Console({
       level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
@@ -75,7 +49,6 @@ const createLogger = () => {
       )
     }),
 
-    // 📄 Archivo para todos los logs
     new winston.transports.File({
       filename: path.join(logsDir, 'app.log'),
       level: 'info',
@@ -96,11 +69,15 @@ const createLogger = () => {
 
   // 📊 En producción, agregar transporte para servicios externos
   if (process.env.NODE_ENV === 'production') {
-    // 💡 Aquí podrías agregar transportes para:
-    // - Elasticsearch/Kibana
-    // - CloudWatch
-    // - Sentry para errores
-    // - Slack para alertas críticas
+    transports.push(
+    new winston.transports.Console({
+      level: process.env.LOG_LEVEL || 'info',
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  );
   }
 
   return winston.createLogger({
