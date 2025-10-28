@@ -237,6 +237,8 @@ model User {
   projectPricingVersions     ProjectPricingVersion[]
   globalMarginConfigs        GlobalMarginConfig[]
   projectPricingAudits       ProjectPricingAudit[] @relation("ChangedByUser")
+  globalRoles UserGlobalRoles[]
+
 
 
   @@map("users")
@@ -266,11 +268,25 @@ model Role {
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
 
+  //se está añadiendo una nueva relacion:
+  globalUsers UserGlobalRoles[]
   permissions     RolePermission[]
   companyUserRoles CompanyUserRole[]
 
   @@map("roles")
 }
+
+model UserGlobalRoles {
+  user   User @relation(fields: [userId], references: [id])
+  userId String @db.Uuid// Foreign Key a User
+
+  role   Role @relation(fields: [roleId], references: [id])
+  roleId String @db.Uuid // Foreign Key a Role
+
+  // Define la clave primaria compuesta
+  @@id([userId, roleId])
+}
+
 
 model Permission {
   id          String   @id @default(uuid()) @db.Uuid

@@ -76,6 +76,8 @@ router.put('/:id/status',
  * Listar todas las empresas (admin)
  * GET /api/onboard/companies
  * Permisos: admin.system
+ * Se puede hacer filtros para company:
+ * registered, pending_contract, signed, active, suspended
  */
 router.get('/',
   requirePermissions(['admin.system']),
@@ -87,7 +89,7 @@ router.get('/',
  * GET /api/onboard/companies/stats
  * Permisos: admin.system
  */
-router.get('/stats',
+router.get('/get/stats',
   requirePermissions(['admin.system']),
   companyController.getOnboardingStats
 );

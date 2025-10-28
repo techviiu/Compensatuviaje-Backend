@@ -36,13 +36,26 @@ let transporter = null;
  */
 const initializeTransporter = () => {
   if (!transporter) {
-    transporter = nodemailer.createTransport({
+     transporter = nodemailer.createTransport({
       host: EMAIL_CONFIG.host,
       port: EMAIL_CONFIG.port,
-      secure: EMAIL_CONFIG.secure,
-      auth: EMAIL_CONFIG.auth
+      secure: EMAIL_CONFIG.secure === 'true',
+      auth: {
+           user: EMAIL_CONFIG.auth.user,
+          pass: EMAIL_CONFIG.auth.pass,
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
     });
   }
+  transporter.verify(function (error, success) {
+  if (error) {
+    console.error("❌ Error verificando conexión SMTP:", error);
+  } else {
+    console.log("✅ Servidor SMTP listo para enviar correos");
+  }
+});
   return transporter;
 };
 
@@ -71,7 +84,8 @@ const sendWelcomeEmail = async (company, adminUser) => {
         supportEmail: 'soporte@compensatuviaje.com'
       }
     };
-
+    console.log("❌ ESto lo que que tengo en sendWelcomeEmail", emailData);
+    
     return await sendEmail(emailData);
 
   } catch (error) {
@@ -229,7 +243,7 @@ const sendDocumentReminderEmail = async (company, missingDocuments) => {
  */
 const sendEmail = async (emailData) => {
   try {
-    console.log(emailData);
+    console.log("❌ Esto lo que tengo en sendEmail", emailData);
     
     const transport = initializeTransporter();
 
@@ -280,13 +294,17 @@ const sendEmail = async (emailData) => {
  */
 const generateEmailTemplate = (templateName, data) => {
   const templates = {
-    'welcome': generateWelcomeTemplate(data),
-    'status-change': generateStatusChangeTemplate(data),
-    'document-reminder': generateDocumentReminderTemplate(data)
+    'welcome': generateWelcomeTemplate,
+    'status-change': generateStatusChangeTemplate,
+    'document-reminder': generateDocumentReminderTemplate
   };
 
-  return templates[templateName] || generateDefaultTemplate(data);
+  console.log("👌 Esto es lo que tengo en generateEmailTemplate:", templateName, data);
+
+  const selectedTemplate = templates[templateName] || generateDefaultTemplate;
+  return selectedTemplate(data);
 };
+
 
 /**
  * Template de bienvenida
@@ -294,7 +312,14 @@ const generateEmailTemplate = (templateName, data) => {
  */
 
 
-const generateWelcomeTemplate = (data) => `
+const generateWelcomeTemplate = (data) => {
+
+
+  console.log("este es dato de email wecome: ", data);
+  
+
+
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -316,7 +341,7 @@ const generateWelcomeTemplate = (data) => `
         <div style="margin-bottom: 20px;">
             <h3>Próximos pasos:</h3>
             <ol>
-                ${data.nextSteps.map(step => `<li style="margin-bottom: 5px;">${step}</li>`).join('')}
+               ${(data.nextSteps || []).map(step => `<li>${step}</li>`).join('')} 
             </ol>
         </div>
         
@@ -334,8 +359,9 @@ const generateWelcomeTemplate = (data) => `
         </div>
     </div>
 </body>
-</html>
-`;
+</html>`
+}
+;
 
 /**
  * Template de cambio de estado

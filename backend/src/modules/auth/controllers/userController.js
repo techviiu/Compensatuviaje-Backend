@@ -255,7 +255,7 @@ class UserController {
    * - Extrae datos del usuario admin desde JWT
    * 
    * ¿Qué hace el service?
-   * - Verifica permisos de admin (COMPANY_ADMIN, SUPER_ADMIN)
+   * - Verifica permisos de admin (COMPANY_ADMIN, SUPERADMIN)
    * - Construye filtros complejos para Prisma
    * - Paginación y ordenamiento
    * - Incluye conteo de actividad reciente
@@ -411,7 +411,7 @@ class UserController {
    * 
    * ¿Validaciones complejas en service?
    * - Admin no puede reducir su propio rol
-   * - Solo puede administrar usuarios de su empresa (excepto SUPER_ADMIN)
+   * - Solo puede administrar usuarios de su empresa (excepto SUPERADMIN)
    * - Validación de roles permitidos según nivel del admin
    * - Email único en toda la plataforma
    * - Cambio de email requiere re-verificación

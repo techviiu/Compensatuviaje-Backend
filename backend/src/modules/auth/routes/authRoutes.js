@@ -13,7 +13,7 @@ router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.me);
 router.post('/change-password', authenticate, authController.changePassword);
 
-//  USER PROFILE ROUTES (usa userController refactorizado) 
+//  USER PROFILE ROUTES  
 router.get('/profile', authenticate, userController.getProfile);
 router.put('/profile', authenticate, userController.updateProfile);
 router.put('/profile/password', authenticate, userController.changePassword);

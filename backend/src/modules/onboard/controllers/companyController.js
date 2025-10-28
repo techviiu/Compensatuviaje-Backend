@@ -142,8 +142,8 @@ const updateCompany = [
             const {id} = req.params;
             const updateData = req.body;
             // esto biene del middleware 
-            const userId = req.user.id;
-
+            const userId = req.user.user_id;
+            
             const updateCompany = await companyService.updateCompany(
                 id,
                 updateData,
@@ -287,7 +287,15 @@ const listCompanies = async (req, res) =>{
         if(pagination.limit > 100){
             pagination.limit = 100;
         }
+        console.log(" ❌Estos son lo filtros",filters)
+        const validStatuses = ['registered','pending_contract', 'signed', 'active', 'suspended'];
 
+        if (req.query.status && !validStatuses.includes(req.query.status)) {
+        return res.status(400).json({
+            success: false,
+            message: `Estado inválido: '${req.query.status}'. Valores permitidos: ${validStatuses.join(', ')}`
+        });
+        }
         const result = await companyService.getCompanies(filters, pagination);
         res.json({
             success: true,
@@ -316,24 +324,26 @@ const listCompanies = async (req, res) =>{
 const getOnboardingStats = async (req, res) => {
     try {
         const stats = await companyService.getCompanies({}, {page:1, limit: 1000});
-
+        //console.log("👋", stats);
         // calculando estadísticas
         const statusCounts = stats.companies.reduce((acc, company) => {
-            acc[company.stats] = (acc[company.status] || 0) + 1;
-
+            acc[company.status] = (acc[company.status] || 0) + 1;
+            return acc;
         }, {});
 
+        //console.log("👌", statusCounts);
         const sizeDistribution = stats.companies.reduce((acc, company) => {
             const size = company.tamanoEmpresa || 'no_especificado';
             acc[size] = (acc[size] || 0) + 1;
             return acc;
         }, {})
 
+        //console.log("😅", sizeDistribution);
         // empressa registradas por mes (ultimos 6 meses)
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
-        const recentCompanies = stats.companies.filters(
+        const recentCompanies = stats.companies.filter(
             company => new Date(company.createAt)>= sixMonthsAgo
         );
         const monthlyRegistrations = recentCompanies.reduce((acc, company) =>{
@@ -341,6 +351,9 @@ const getOnboardingStats = async (req, res) => {
             acc[month] = (acc[month] || 0) + 1;
             return acc;
         }, {})
+
+
+        //console.log("😔", recentCompanies);
 
         res.json({
             success: true,

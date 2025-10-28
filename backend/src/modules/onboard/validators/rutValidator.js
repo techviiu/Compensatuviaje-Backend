@@ -30,7 +30,7 @@ const cleanRut = (rut) =>{
 const calculateDV = (rutBase) =>{
     // utilizamos la biblioteca para validar excepciones
    const respuesta = validateRut(rutBase, false);
-   console.log('👌', respuesta, rutBase)
+   console.log('👍', respuesta, rutBase)
    return  respuesta;
 }
 

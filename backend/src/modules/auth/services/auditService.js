@@ -66,12 +66,12 @@ class AuditService {
         })
       };
 
+      logger.info("❌Esto lo que tengo en auditLog",auditRecord)
       // 3️ Insertar en base de datos
       const result = await prisma.auditLog.create({
         data: auditRecord
       });
 
-      // 4️ Log exitoso (solo en debug para no llenar logs)
       if (process.env.LOG_LEVEL === 'debug') {
         logger.debug('Audit event recorded', {
           audit_id: result.id,

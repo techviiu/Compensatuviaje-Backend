@@ -19,14 +19,14 @@ const prisma = new PrismaClient();
 /**
  * Verificar que el usuario tiene los permisos requeridos
  * @param {Array} requiredPermissions - Array de códigos de permisos requeridos
+ * NUEVO: Ahora tiene soporte para empresas de onboarding
  */
 const requirePermissions = (requiredPermissions) => {
   return async (req, res, next) => {
     try {
-      const userId = req.user.id;
-
+      const userId = req.user.user_id;
       // SuperAdmin tiene todos los permisos automáticamente
-      if (await checkIfSuperAdmin(userId)) {
+      if (req.user.isSuperAdmin || await checkIfSuperAdmin(userId)) {
         req.user.isSuperAdmin = true;
         req.user.permissions = ['*']; // Wildcard para todos los permisos
         
@@ -48,10 +48,53 @@ const requirePermissions = (requiredPermissions) => {
       );
 
       if (!hasAllPermissions) {
+        const missingPermissions = requiredPermissions.filter(p => !userPermissions.includes(p));
+        const companyStatus = req.user?.company?.status;
+        
+        // ✅ BYPASS: COMPANY_ADMIN puede leer su propia empresa en rutas de onboarding
+        const isOnboardingRoute = req.url.includes('/onboard/companies');
+        const isReadingOwnCompany = req.params?.id === req.user?.company_id || req.params?.companyId === req.user?.company_id;
+        const isCompanyAdmin = req.user?.role === 'COMPANY_ADMIN';
+        const isReadingCompany = missingPermissions.length === 1 && missingPermissions[0] === 'companies.read';
+        
+        if (isOnboardingRoute && isReadingOwnCompany && isCompanyAdmin && isReadingCompany) {
+          logger.debug('COMPANY_ADMIN bypass for reading own company during onboarding', {
+            userId,
+            company_id: req.user?.company_id,
+            companyStatus
+          });
+          
+          // Permitir acceso con bypass temporal
+          req.user.permissions = [...userPermissions, 'companies.read'];
+          return next();
+        }
+
+        let message = 'No tienes permisos suficientes para esta acción';
+        let errorCode = 'INSUFFICIENT_PERMISSIONS';
+        let suggestions = [];
+
+        // Distinguir entre falta de permisos vs restricción por estado
+        if (missingPermissions.length === 0 && companyStatus && companyStatus !== 'active') {
+          // Tiene permisos pero la empresa no está activa (para rutas operacionales)
+          message = 'Esta acción requiere que la empresa esté activa';
+          errorCode = 'COMPANY_NOT_ACTIVE';
+          suggestions = getOnboardingSuggestions(companyStatus);
+        } else if (missingPermissions.length > 0) {
+          // Le faltan permisos reales
+          message = `No tienes los permisos necesarios: ${missingPermissions.join(', ')}`;
+          errorCode = 'INSUFFICIENT_PERMISSIONS';
+          suggestions = [
+            'Contacta al administrador de tu empresa para solicitar permisos',
+            'Verifica que tu rol incluya los permisos necesarios'
+          ];
+        }
+
         logger.warn('Permission denied', {
           userId,
           requiredPermissions,
           userPermissions,
+          missingPermissions,
+          companyStatus,
           url: req.url,
           method: req.method,
           ip: req.ip
@@ -59,13 +102,15 @@ const requirePermissions = (requiredPermissions) => {
 
         return res.status(403).json({
           success: false,
-          message: 'No tienes permisos suficientes para esta acción',
+          error_code: errorCode,
+          message,
           required: requiredPermissions,
-          missing: requiredPermissions.filter(p => !userPermissions.includes(p))
+          missing: missingPermissions,
+          company_status: companyStatus,
+          suggestions
         });
       }
 
-      // Agregar permisos al request para uso posterior
       req.user.permissions = userPermissions;
       
       logger.debug('Permission granted', {
@@ -125,11 +170,18 @@ const checkIfSuperAdmin = async (userId) => {
 const getUserPermissions = async (userId) => {
   try {
     const companyUsers = await prisma.companyUser.findMany({
-      where: {
+          where: {
         userId,
         status: 'active'
       },
       include: {
+        company: {
+          select: {
+            id: true,
+            status: true,
+            razonSocial: true
+          }
+        },
         roles: {
           include: {
             role: {
@@ -176,6 +228,7 @@ const requireRole = (allowedRoles) => {
   return async (req, res, next) => {
     try {
       const userId = req.user.id;
+      logger.info("🧟‍♂️", req.user )
 
       // SuperAdmin bypasses role check
       if (await checkIfSuperAdmin(userId)) {
@@ -389,6 +442,35 @@ const permissions = {
   canAccessAdmin: requirePermissions(['admin.system']),
   canViewAudit: requirePermissions(['admin.audit']),
   canManageCatalogs: requirePermissions(['admin.catalogs'])
+};
+
+
+
+/**
+ * Helper: Sugerencias para completar onboarding
+ */
+const getOnboardingSuggestions = (status) => {
+  const suggestions = {
+    'registered': [
+      'Complete la carga de documentos requeridos',
+      'Verifique los dominios corporativos',
+      'Espere la revisión del equipo'
+    ],
+    'pending_contract': [
+      'Revise el contrato enviado por email',
+      'Firme y envíe el contrato al equipo comercial'
+    ],
+    'signed': [
+      'Su empresa está en proceso de activación final',
+      'Recibirá notificación cuando esté activa'
+    ],
+    'suspended': [
+      'Contacte al equipo de soporte',
+      'Revise la documentación pendiente'
+    ]
+  };
+
+  return suggestions[status] || ['Contacte al equipo de soporte'];
 };
 
 module.exports = {

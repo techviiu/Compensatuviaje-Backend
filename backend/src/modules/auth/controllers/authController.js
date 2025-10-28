@@ -47,12 +47,11 @@ class AuthController{
       }
 
       const {email, password, remember_me = false} = value;
-      //  2️⃣ Extraemos info del cliente
+      //  2 Extraemos info del cliente
       const clientInfo = {
         ip: req.ip || req.connection.remoteAddress || 'unknown',
         user_agent: req.get('User-Agent') || 'unknown',
         timestamp: new Date().toISOString()
-        // para que se aun mas real se devería recoger mas info
       }
 
       logger.info('Login attempt started', {
@@ -74,7 +73,7 @@ class AuthController{
       await auditService.logEvent({
         user_id: userInfo.user_id,
         company_id: userInfo.company_id,
-        action: 'LOGIC_SUCCESS',
+        action: 'LOGIN_SUCCESS',
         entity_type: 'auth',
         entity_id: userInfo.user_id,
         details: {

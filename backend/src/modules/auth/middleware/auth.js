@@ -14,6 +14,22 @@ const authService = require('../services/authService');
 const logger = require('../../../utils/logger');
 const { decode } = require('jsonwebtoken');
 
+const ACTIVE_COMPANY_REQUIRED_PATHS = [
+  '/api/upload',           // Carga de manifiestos
+  '/api/calc',             // Cálculos de emisiones
+  '/api/certificates',     // Generación de certificados
+  '/api/payments',         // Procesamiento de pagos
+  '/api/reports'           // Exportación de reportes
+];
+
+
+const ONBOARDING_ALLOWED_PATHS = [
+  '/api/auth',             // Autenticación
+  '/api/onboard',          // Proceso de onboarding
+  '/health',               // Health check
+  '/api/info'              // Información de API
+];
+
 const authMiddleware = async (req, res, next) =>{
   const startTime = Date.now();
   try {
@@ -97,50 +113,130 @@ const authMiddleware = async (req, res, next) =>{
       });
     }
 
-    // Verificamos que el usuario existe y que ademas eeste activo en BD, pero eso no tdavía
+    // Verificamos que el usuario existe
     const userExists = await authService.getUserById(decoded.user_id);
 
-    if(!userExists){
-      logger.warn('token for non-existent or inactive user', {
+    if (!userExists) {
+      logger.warn('Token for non-existent user', {
         user_id: decoded.user_id,
         ip: req.ip
-      })
+      });
 
       return res.status(401).json({
         success: false,
-        error_code: 'USERT_NOT_FOUND',
-        error_message: 'Usuario no econtrado o inactivo'
+        error_code: 'USER_NOT_FOUND',
+        error_message: 'Usuario no encontrado'
       });
     }
+  
 
-    // Verificamos que la empresa al que pertence esté activa
-    const activeCompany = userExists.companyUsers.find(cu => cu.company.id === decoded.company_id && cu.company.status === 'ACTIVE');
+    let companyUser = null;
+    let company = null;
 
-    if(!activeCompany){
-      logger.warn('Token for inactive company', {
-        user_id: decode.user.id,
-        comapny_id: decode.company_id,
+    if (decoded.company_id) {
+      // Buscamos la relación usuario-empresa
+      companyUser = userExists.companyUsers.find(cu => cu.company.id === decoded.company_id);
+      
+      if (companyUser) {
+        company = companyUser.company;
+        
+        // Verificar que el CompanyUser esté activo
+        if (companyUser.status !== 'active') {
+          logger.warn('Inactive CompanyUser attempting access', {
+            user_id: decoded.user_id,
+            company_id: decoded.company_id,
+            companyUser_status: companyUser.status,
+            ip: req.ip
+          });
+
+          return res.status(403).json({
+            success: false,
+            error_code: 'USER_INACTIVE_IN_COMPANY',
+            error_message: 'Tu cuenta está inactiva en esta empresa. Contacta al administrador.'
+          });
+        }
+
+        // Verificar si la empresa está suspendida (bloquea TODO acceso)
+        if (company.status === 'suspended') {
+          logger.warn('Access attempt from suspended company', {
+            user_id: decoded.user_id,
+            company_id: decoded.company_id,
+            company_status: company.status,
+            ip: req.ip
+          });
+
+          return res.status(403).json({
+            success: false,
+            error_code: 'COMPANY_SUSPENDED',
+            error_message: 'Empresa suspendida. Contacte al equipo de CompensaTuViaje.'
+          });
+        }
+      }
+    }
+
+    // SuperAdmin bypass (no requiere empresa)
+    const isSuperAdmin = await checkIfSuperAdmin(decoded.user_id);
+    console.log("👌esto lo que tengo en superAdmin", isSuperAdmin, "ID:", decoded.user_id)
+    if (!isSuperAdmin && !companyUser) {
+      logger.warn('Token for user without company access', {
+        user_id: decoded.user_id,
+        company_id: decoded.company_id,
         ip: req.ip
       });
 
       return res.status(403).json({
         success: false,
-        error_code: 'COMPANY_INACTIVE',
-        error_message: 'Empresa asociada está inactivo'
+        error_code: 'COMPANY_ACCESS_DENIED',
+        error_message: ' ❌No tienes acceso a esta empresa'
+      });
+    }
+    // Verificar si la ruta requiere empresa activa
+    const requiresActiveCompany = ACTIVE_COMPANY_REQUIRED_PATHS.some(path => 
+      req.path.startsWith(path)
+    );
+
+    const isOnboardingPath = ONBOARDING_ALLOWED_PATHS.some(path => 
+      req.path.startsWith(path)
+    );
+
+    // BLOQUEAR rutas operacionales críticas si la empresa NO está activa
+    if (!isSuperAdmin && requiresActiveCompany && company?.status !== 'active') {
+      logger.warn('Access denied - inactive company for operational endpoint', {
+        user_id: decoded.user_id,
+        company_id: decoded.company_id,
+        company_status: company?.status,
+        path: req.path,
+        ip: req.ip
+      });
+
+      return res.status(403).json({
+        success: false,
+        error_code: 'COMPANY_NOT_ACTIVE',
+        error_message: `Esta operación requiere que la empresa esté activa. Estado actual: '${company?.status}'. Complete el proceso de onboarding.`,
+        company_status: company?.status,
+        next_steps: getNextStepsForStatus(company?.status)
       });
     }
 
-    // inyectamos en el request, mas exactamente en el req.user para contollerss
+
+ 
+
     req.user = {
-      user_id: decoded.userd_id,
+      user_id: decoded.user_id,
       email: decoded.email,
-      comapany_id: decoded.comapny_id,
+      company_id: decoded.company_id,
       role: decoded.role,
       permissions: decoded.permissions || [],
-      is_admin: activeCompany.isAdmin,
+      is_admin: companyUser?.isAdmin || false,
+      isSuperAdmin,
+      company: company ? {
+        id: company.id,
+        status: company.status,
+        razonSocial: company.razonSocial,
+        slug: company.slug
+      } : null,
       last_activity: new Date().toISOString()
     };
-
     // logs de acceso existoso 
         if (process.env.LOG_LEVEL === 'debug') {
       const duration = Date.now() - startTime;
@@ -153,9 +249,6 @@ const authMiddleware = async (req, res, next) =>{
       });
     }
 
-    // aquie faltaria: 1: Actualizar última actividad del usuario
-    // 2: Verificar límites de sesiones concurrentes
-    // 3: Detectar comportamiento sospechoso
     next()
   } catch (error) {
         const duration = Date.now() - startTime;
@@ -203,18 +296,27 @@ const optionalAuthMiddleware = async (req, res, next) => {
         const userExists = await authService.getUserById(validation.decoded.user_id);
         
         if (userExists) {
-          const activeCompany = userExists.companyUsers.find(
-            cu => cu.company.id === validation.decoded.company_id && cu.company.status === 'ACTIVE'
+          const companyUser = userExists.companyUsers.find(
+            cu => cu.company.id === validation.decoded.company_id
           );
           
-          if (activeCompany) {
+          if (companyUser) {
+            const isSuperAdmin = await checkIfSuperAdmin(validation.decoded.user_id);
+            
             req.user = {
+              id: validation.decoded.user_id,
               user_id: validation.decoded.user_id,
               email: validation.decoded.email,
               company_id: validation.decoded.company_id,
               role: validation.decoded.role,
               permissions: validation.decoded.permissions || [],
-              is_admin: activeCompany.isAdmin
+              is_admin: companyUser.isAdmin,
+              isSuperAdmin,
+              company: {
+                id: companyUser.company.id,
+                status: companyUser.company.status,
+                razonSocial: companyUser.company.razonSocial
+              }
             };
           }
         }
@@ -229,7 +331,6 @@ const optionalAuthMiddleware = async (req, res, next) => {
     next();
 
   } catch (error) {
-    // En caso de error, continuar sin autenticación
     logger.warn('Optional auth middleware error', {
       error: error.message,
       path: req.path,
@@ -241,6 +342,74 @@ const optionalAuthMiddleware = async (req, res, next) => {
   }
 };
 
+const checkIfSuperAdmin = async (userId) => {
+  try {
+    const user = await authService.getUserById(userId);
+    const superAdminEmail = process.env.FIRST_SUPER_ADMIN_EMAIL || 'admin@compensatuviaje.com';
+    return user?.email === superAdminEmail;
+  } catch (error) {
+    logger.error('Error checking SuperAdmin', { error: error.message, userId });
+    return false;
+  }
+};
+
+const getNextStepsForStatus = (status) => {
+  const steps = {
+    'registered': [
+      'Completar carga de documentos requeridos',
+      'Verificar dominios corporativos',
+      'Esperar revisión del equipo CompensaTuViaje'
+    ],
+    'pending_contract': [
+      'Revisar y firmar contrato enviado por email',
+      'Enviar contrato firmado al equipo comercial'
+    ],
+    'signed': [
+      'Esperar activación final del equipo técnico',
+      'Recibirás notificación por email cuando esté listo'
+    ],
+    'suspended': [
+      'Contactar al equipo de soporte para reactivación',
+      'Revisar y corregir documentación si es necesario'
+    ]
+  };
+
+  return steps[status] || ['Contactar soporte técnico'];
+};
+
+
+
+/**
+ * Middleware que requiere empresa activa específicamente
+ * Para endpoints que absolutamente necesitan empresa operacional
+ */
+const requireActiveCompany = (req, res, next) => {
+  if (req.user?.isSuperAdmin) {
+    return next(); // SuperAdmin bypass
+  }
+
+  if (!req.user?.company || req.user.company.status !== 'active') {
+    logger.warn('Active company required', {
+      user_id: req.user?.user_id,
+      company_id: req.user?.company_id,
+      company_status: req.user?.company?.status,
+      path: req.path,
+      ip: req.ip
+    });
+
+    return res.status(403).json({
+      success: false,
+      error_code: 'ACTIVE_COMPANY_REQUIRED',
+      error_message: 'Esta operación requiere que la empresa esté activa',
+      company_status: req.user?.company?.status,
+      next_steps: getNextStepsForStatus(req.user?.company?.status)
+    });
+  }
+
+  next();
+};
+
+
 /**
  * Middleware de extracción de empresa
  * 
@@ -251,36 +420,47 @@ const optionalAuthMiddleware = async (req, res, next) => {
  */
 
 
-const extractCompanyMiddleware = async (req, res, next) =>{
+/**
+ * Middleware de extracción de empresa
+ * Ahora con soporte para empresas en proceso de onboarding
+ */
+const extractCompanyMiddleware = async (req, res, next) => {
   try {
-    const {companyId}  = req.params;
-    if(!companyId){
+    const { companyId } = req.params;
+    
+    if (!companyId) {
       return res.status(400).json({
         success: false,
         error_code: 'MISSING_COMPANY_ID',
         error_message: 'ID de empresa requerido'
-      })
+      });
     }
 
-    // verificamos que pertence a su empresa
-    if(req.user.company_id !== companyId){
-      logger.warn('Cross-company access attempt',{
-        user_id: req.user.user_id,
-        user_company: req.user.company_id,
+    // SuperAdmin puede acceder a cualquier empresa
+    if (req.user?.isSuperAdmin) {
+      req.targetCompany = companyId;
+      return next();
+    }
+
+    // Verificar que pertenece a su empresa
+    if (req.user?.company_id !== companyId) {
+      logger.warn('Cross-company access attempt', {
+        user_id: req.user?.user_id,
+        user_company: req.user?.company_id,
         requested_company: companyId,
         ip: req.ip
-      })
+      });
 
       return res.status(403).json({
         success: false,
         error_code: 'COMPANY_ACCESS_DENIED',
-        error_message: 'No tine acceso a esta empresa'
+        error_message: 'No tienes acceso a esta empresa'
       });
     }
 
-    // par el MVP real abira rabcService integrado para dar permisos suficientes a dicho rol
     req.targetCompany = companyId;
     next();
+
   } catch (error) {
     logger.error('Extract company middleware error', {
       error: error.message,

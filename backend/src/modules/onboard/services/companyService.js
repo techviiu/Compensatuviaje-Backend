@@ -210,7 +210,7 @@ const getCompanyById = async (companyId, includeUsers = false) =>{
 
         const company = await prisma.company.findUnique({
             where: {id: companyId},
-            include
+            
         })
         if(!company){
             throw new Error('Empresa no econtrada');
@@ -243,6 +243,8 @@ const updateCompany = async (companyId, updateData, actorUserId) => {
       throw new Error('Empresa no encontrada');
     }
 
+      console.log(" ❌Empresa: ", currentCompany)
+
     // 2. Validar slug único si se proporciona
     if (updateData.slugPublico && updateData.slugPublico !== currentCompany.slugPublico) {
       const existingSlug = await prisma.company.findFirst({
@@ -253,9 +255,10 @@ const updateCompany = async (companyId, updateData, actorUserId) => {
       });
       
       if (existingSlug) {
-        throw new Error('El slug público ya está en uso');
+        throw new Error(' ❌ El slug público ya está en uso');
       }
     }
+      console.log(" 🍻Empresa id: ", companyId)
 
     // 3. Actualizar empresa
     const updatedCompany = await prisma.company.update({
@@ -387,14 +390,15 @@ const getCompanies = async (filters = {}, pagination = { page: 1, limit: 10 }) =
     const skip = (page - 1) * limit;
 
     // Construir filtros dinámicos
-    const where = {};
+    const whereFilter = {};
     
     if (filters.status) {
-      where.status = filters.status;
+      whereFilter.status = filters.status;
     }
-    
+
+
     if (filters.search) {
-      where.OR = [
+      whereFilter.OR = [
         { razonSocial: { contains: filters.search, mode: 'insensitive' } },
         { nombreComercial: { contains: filters.search, mode: 'insensitive' } },
         { rut: { contains: filters.search } }
@@ -402,13 +406,14 @@ const getCompanies = async (filters = {}, pagination = { page: 1, limit: 10 }) =
     }
     
     if (filters.tamanoEmpresa) {
-      where.tamanoEmpresa = filters.tamanoEmpresa;
+      whereFilter.tamanoEmpresa = filters.tamanoEmpresa;
     }
+   
 
     // Obtener empresas y total
     const [companies, total] = await Promise.all([
       prisma.company.findMany({
-        where,
+      where: whereFilter,
         include: {
           _count: {
             select: {
@@ -422,7 +427,7 @@ const getCompanies = async (filters = {}, pagination = { page: 1, limit: 10 }) =
         skip,
         take: limit
       }),
-      prisma.company.count({ where })
+      prisma.company.count()
     ]);
 
     return {

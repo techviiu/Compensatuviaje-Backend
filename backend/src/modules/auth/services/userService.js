@@ -365,7 +365,7 @@ class UserService {
   async getCompanyUsers(adminUserId, companyId, adminRole, filters = {}, pagination = {}, auditContext = {}) {
     try {
       // Verificar permisos de admin
-      if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(adminRole)) {
+      if (!['COMPANY_ADMIN', 'SUPERADMIN'].includes(adminRole)) {
         throw new Error('INSUFFICIENT_PERMISSIONS');
       }
 
@@ -497,7 +497,7 @@ class UserService {
   async createUser(adminUserId, companyId, adminRole, userData, auditContext = {}) {
     try {
       // Verificar permisos
-      if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(adminRole)) {
+      if (!['COMPANY_ADMIN', 'SUPERADMIN'].includes(adminRole)) {
         throw new Error('INSUFFICIENT_PERMISSIONS');
       }
 
@@ -513,8 +513,8 @@ class UserService {
       }
 
       // Validar rol del nuevo usuario
-      const allowedRoles = adminRole === 'SUPER_ADMIN' 
-        ? ['USER', 'COMPANY_ADMIN', 'SUPER_ADMIN']
+      const allowedRoles = adminRole === 'SUPERADMIN' 
+        ? ['USER', 'COMPANY_ADMIN', 'SUPERADMIN']
         : ['USER', 'COMPANY_ADMIN'];
 
       if (!allowedRoles.includes(role)) {
@@ -523,7 +523,7 @@ class UserService {
 
       // Generar contraseña temporal
       const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-      const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+      const saltRounds = parseInt(process.env.BCRYPT_ROUNDS  || "8");
       const passwordHash = await bcrypt.hash(tempPassword, saltRounds);
 
       // Crear usuario
@@ -595,7 +595,7 @@ class UserService {
   async updateUser(adminUserId, companyId, adminRole, targetUserId, updateData, auditContext = {}) {
     try {
       // Verificar permisos
-      if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(adminRole)) {
+      if (!['COMPANY_ADMIN', 'SUPERADMIN'].includes(adminRole)) {
         throw new Error('INSUFFICIENT_PERMISSIONS');
       }
 
@@ -611,15 +611,15 @@ class UserService {
         throw new Error('USER_NOT_FOUND');
       }
 
-      // Verificar que el usuario pertenece a la misma empresa (excepto SUPER_ADMIN)
-      if (adminRole !== 'SUPER_ADMIN' && targetUser.companyId !== companyId) {
+      // Verificar que el usuario pertenece a la misma empresa (excepto SUPERADMIN)
+      if (adminRole !== 'SUPERADMIN' && targetUser.companyId !== companyId) {
         throw new Error('CROSS_COMPANY_ACCESS_DENIED');
       }
 
       // Validar cambios de rol
       if (updateData.role && updateData.role !== targetUser.role) {
-        const allowedRoles = adminRole === 'SUPER_ADMIN' 
-          ? ['USER', 'COMPANY_ADMIN', 'SUPER_ADMIN']
+        const allowedRoles = adminRole === 'SUPERADMIN' 
+          ? ['USER', 'COMPANY_ADMIN', 'SUPERADMIN']
           : ['USER', 'COMPANY_ADMIN'];
 
         if (!allowedRoles.includes(updateData.role)) {
@@ -721,7 +721,7 @@ class UserService {
   async deactivateUser(adminUserId, companyId, adminRole, targetUserId, auditContext = {}) {
     try {
       // Verificar permisos
-      if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(adminRole)) {
+      if (!['COMPANY_ADMIN', 'SUPERADMIN'].includes(adminRole)) {
         throw new Error('INSUFFICIENT_PERMISSIONS');
       }
 
@@ -747,7 +747,7 @@ class UserService {
         throw new Error('CANNOT_DEACTIVATE_SELF');
       }
 
-      if (adminRole !== 'SUPER_ADMIN' && targetUser.companyId !== companyId) {
+      if (adminRole !== 'SUPERADMIN' && targetUser.companyId !== companyId) {
         throw new Error('CROSS_COMPANY_ACCESS_DENIED');
       }
 
@@ -811,7 +811,7 @@ class UserService {
   async reactivateUser(adminUserId, companyId, adminRole, targetUserId, auditContext = {}) {
     try {
       // Verificar permisos
-      if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(adminRole)) {
+      if (!['COMPANY_ADMIN', 'SUPERADMIN'].includes(adminRole)) {
         throw new Error('INSUFFICIENT_PERMISSIONS');
       }
 
@@ -879,7 +879,7 @@ class UserService {
   async resetUserPassword(adminUserId, companyId, adminRole, targetUserId, auditContext = {}) {
     try {
       // Verificar permisos
-      if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(adminRole)) {
+      if (!['COMPANY_ADMIN', 'SUPERADMIN'].includes(adminRole)) {
         throw new Error('INSUFFICIENT_PERMISSIONS');
       }
 

@@ -74,9 +74,7 @@ const loginSchema = Joi.object({
  * ¿Qué valida?
  * - Refresh_token: string no vacío, formato JWT básico
  * 
- * ¿Por qué estas reglas?
- * - Refresh token debe existir para renovar sesión
- * - Validación básica de formato evita requests inútiles
+
  */
 const refreshSchema = Joi.object({
   refresh_token: Joi.string()
@@ -400,10 +398,10 @@ const createUserSchema = Joi.object({
     }),
 
   role: Joi.string()
-    .valid('USER', 'COMPANY_ADMIN', 'SUPER_ADMIN')
+    .valid('USER', 'COMPANY_ADMIN', 'SUPERADMIN')
     .required()
     .messages({
-      'any.only': 'Rol debe ser USER, COMPANY_ADMIN o SUPER_ADMIN',
+      'any.only': 'Rol debe ser USER, COMPANY_ADMIN o SUPERADMIN',
       'any.required': 'Rol es requerido'
     })
 });
@@ -433,10 +431,10 @@ const updateUserSchema = Joi.object({
     }),
 
   role: Joi.string()
-    .valid('USER', 'COMPANY_ADMIN', 'SUPER_ADMIN')
+    .valid('USER', 'COMPANY_ADMIN', 'SUPERADMIN')
     .optional()
     .messages({
-      'any.only': 'Rol debe ser USER, COMPANY_ADMIN o SUPER_ADMIN'
+      'any.only': 'Rol debe ser USER, COMPANY_ADMIN o SUPERADMIN'
     }),
 
   isActive: Joi.boolean()

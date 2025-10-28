@@ -12,39 +12,49 @@ class TokenService{
    * permissions: Arraya de permisos de específicos
    * jti: jwt id único para tracking
    */
-  generateAccessToken(payload){
-    try{
-      const tokenPayload = {
-        // info user
-        user_id: payload.user_id,
-        email: payload.email,
-        company_id: payload.company_id,
-        role: payload.role,
-        permissions: payload.permissions || [],
-        jt: uuidv4,
-        token_type: 'access',
-        iat: Math.floor(Date.now()/1000), 
-        iss: config.issuer,
-        aud: config.audience
-      }
-      const token = jwt.sign(tokenPayload, config.secret, {
-        expiresIn: config.accessTokenExpiry,
-        algorithm: 'Hs256'
-      });
+generateAccessToken(payload) {
+  try {
+    // Objeto base con la información común para todos los usuarios
+    const basePayload = {
+      user_id: payload.user_id,
+      email: payload.email,
+      role: payload.role,
+      permissions: payload.permissions || [],
+      is_super_admin: payload.is_super_admin || false,
+    };
 
-      logger.info(`Access token generated for user ${payload.user_id}`,
-        {user_id: payload.user_id,
-          company_id:payload.company_id,
-          jti: tokenPayload.jti
-        }
-      );
-      return token
+   
+    const tokenPayload = {
+      ...basePayload,
+      ...(!payload.is_super_admin && { company_id: payload.company_id }),
 
-    }catch(error){
-      logger.error('Error generating access token',error )
-      throw new Error('Token generation failed')
-    }
+      jti: uuidv4(),
+      token_type: 'access',
+      iat: Math.floor(Date.now() / 1000),
+      iss: config.issuer,
+      aud: config.audience
+    };
+
+    const token = jwt.sign(tokenPayload, config.secret, {
+      expiresIn: config.accessTokenExpiry,
+      algorithm: 'HS256'
+    });
+
+    const logMetadata = {
+      user_id: payload.user_id,
+      jti: tokenPayload.jti,
+      ...(tokenPayload.company_id && { company_id: tokenPayload.company_id }) 
+    };
+
+    logger.info(`Access token generated for user ${payload.user_id}`, logMetadata);
+    
+    return token;
+
+  } catch (error) {
+    logger.error('Error generating access token', error);
+    throw new Error('Token generation failed');
   }
+}
 
   generateRefreshToken(userId){
     try {
@@ -56,13 +66,14 @@ class TokenService{
         iss: config.issuer,
         aud: config.audience
       }
+      
 
       const token = jwt.sign(tokenPayload, config.secret, {
         expiresIn: config.refreshTokenExpiry,
         algorithm: 'HS256'
       })
 
-      logger.info(`Refreh token generated for user ${id}`, {
+      logger.info(`Refreh token generated for user ${userId}`, {
         user_id: userId,
         jti: tokenPayload.jti
       });
