@@ -340,7 +340,7 @@ const EMISSION_FACTORS = [
   {
     id: '880e8400-e29b-41d4-a716-446655440001',
     transportTypeId: '0a8f8d66-5c5a-4b9e-9e7f-7a9d3c5f2d7e',
-    aircraftType: 'narrow_body',
+    aircraftCategory: 'narrow_body',
     serviceClassId: 'a8b2c4d6-8e10-4f22-a13b-5c7d9e0f1122', // economy
     factorKgCo2PerKmPerPax: 0.161,
     source: 'HuellaChile_v3_2024',
@@ -354,7 +354,7 @@ const EMISSION_FACTORS = [
   {
     id: '880e8400-e29b-41d4-a716-446655440002',
     transportTypeId: '0a8f8d66-5c5a-4b9e-9e7f-7a9d3c5f2d7e',
-    aircraftType: 'narrow_body',
+    aircraftCategory: 'narrow_body',
     serviceClassId: '02ede58b-8830-42bf-977b-2231f8e08900', // business
     factorKgCo2PerKmPerPax: 0.322,
     source: 'HuellaChile_v3_2024, IATA/ICCT',
@@ -368,7 +368,7 @@ const EMISSION_FACTORS = [
   {
     id: '880e8400-e29b-41d4-a716-446655440003',
     transportTypeId: '0a8f8d66-5c5a-4b9e-9e7f-7a9d3c5f2d7e',
-    aircraftType: 'narrow_body',
+    aircraftCategory: 'narrow_body',
     serviceClassId: '3aec2d36-640b-4c0d-8d71-114d0f9a3993', // first
     factorKgCo2PerKmPerPax: 0.483,
     source: 'HuellaChile_v3_2024, IATA/ICCT',
@@ -382,7 +382,7 @@ const EMISSION_FACTORS = [
   {
     id: '880e8400-e29b-41d4-a716-446655440004',
     transportTypeId: '0a8f8d66-5c5a-4b9e-9e7f-7a9d3c5f2d7e',
-    aircraftType: 'wide_body',
+    aircraftCategory: 'wide_body',
     serviceClassId: 'a8b2c4d6-8e10-4f22-a13b-5c7d9e0f1122', // economy
     factorKgCo2PerKmPerPax: 0.1038,
     source: 'HuellaChile_v3_2024',
@@ -396,7 +396,7 @@ const EMISSION_FACTORS = [
   {
     id: '880e8400-e29b-41d4-a716-446655440005',
     transportTypeId: '0a8f8d66-5c5a-4b9e-9e7f-7a9d3c5f2d7e',
-    aircraftType: 'wide_body',
+    aircraftCategory: 'wide_body',
     serviceClassId: '02ede58b-8830-42bf-977b-2231f8e08900', // business
     factorKgCo2PerKmPerPax: 0.2076,
     source: 'HuellaChile_v3_2024, IATA/ICCT',
@@ -410,7 +410,7 @@ const EMISSION_FACTORS = [
   {
     id: '880e8400-e29b-41d4-a716-446655440006',
     transportTypeId: '0a8f8d66-5c5a-4b9e-9e7f-7a9d3c5f2d7e',
-    aircraftType: 'wide_body',
+    aircraftCategory: 'wide_body',
     serviceClassId: '3aec2d36-640b-4c0d-8d71-114d0f9a3993', // first
     factorKgCo2PerKmPerPax: 0.3114,
     source: 'HuellaChile_v3_2024, IATA/ICCT',
