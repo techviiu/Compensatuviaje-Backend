@@ -426,7 +426,7 @@ async function seedEmissionFactors() {
     });
 
     if (existing) {
-      log.warn(`Emission Factor '${factor.aircraftType}/${factor.serviceClassId}' ya existe`);
+      log.warn(`Emission Factor '${factor.aircraftCategory}/${factor.serviceClassId}' ya existe`);
       continue;
     }
 
@@ -434,7 +434,7 @@ async function seedEmissionFactors() {
       data: factor
     });
     
-    log.info(`Emission Factor '${factor.aircraftType}' - ${factor.factorKgCo2PerKmPerPax} kg/pax-km creado`);
+    log.info(`Emission Factor '${factor.aircraftCategory}' - ${factor.factorKgCo2PerKmPerPax} kg/pax-km creado`);
   }
 }
 
@@ -445,61 +445,45 @@ async function seedEmissionFactors() {
 async function seedSuperAdmin() {
   log.section('6. SEEDING SUPERADMIN USER');
   
-  // Verificar si ya existe
-  const existing = await prisma.user.findUnique({
-    where: { email: SUPERADMIN_EMAIL }
-  });
+  try {
+    // Buscar el rol SUPERADMIN
+    const roleSuperAdmin = await prisma.role.findFirstOrThrow({
+      where: { code: 'SUPERADMIN' }
+    });
 
-  if (existing) {
-    log.warn(`SuperAdmin '${SUPERADMIN_EMAIL}' ya existe`);
+    // Crear usuario con rol en una sola transacción
+    const hashedPassword = await bcrypt.hash(SUPERADMIN_PASSWORD, BCRYPT_ROUNDS);
     
-    // Verificar si tiene el rol global
-    const hasGlobalRole = await prisma.$queryRaw<Array<{count: bigint}>>`
-      SELECT COUNT(*) as count
-      FROM user_global_roles
-      WHERE "userId" = ${existing.id}::uuid
-      AND "roleId" = ${'660e8400-e29b-41d4-a716-446655440001'}::uuid
-    `;
+    const superAdmin = await prisma.user.create({
+      data: {
+        email: SUPERADMIN_EMAIL,
+        name: 'Super Administrador',
+        passwordHash: hashedPassword,
+        isActive: true,
+        globalRoles: {
+          create: {
+            roleId: roleSuperAdmin.id
+          }
+        }
+      }
+    });
 
-    if (!hasGlobalRole || hasGlobalRole[0].count === BigInt(0)) {
-      await prisma.$executeRaw`
-        INSERT INTO user_global_roles ("userId", "roleId")
-        VALUES (${existing.id}::uuid, ${'660e8400-e29b-41d4-a716-446655440001'}::uuid)
-        ON CONFLICT DO NOTHING
-      `;
-      log.info('Rol SUPERADMIN asignado al usuario existente');
-    }
+    log.info(`Usuario SuperAdmin '${SUPERADMIN_EMAIL}' creado`);
+    log.info('Rol SUPERADMIN asignado');
     
-    return;
-  }
-
-  // Crear usuario
-  const hashedPassword = await bcrypt.hash(SUPERADMIN_PASSWORD, BCRYPT_ROUNDS);
   
-  const superAdmin = await prisma.user.create({
-    data: {
-      email: SUPERADMIN_EMAIL,
-      name: 'Super Administrador',
-      passwordHash: hashedPassword,
-      isActive: true
+    log.warn(`   Email: ${SUPERADMIN_EMAIL}`);
+    if (process.env.NODE_ENV !== 'production') {
+      log.warn(`   Password: ${SUPERADMIN_PASSWORD}`);
     }
-  });
-
-  log.info(`Usuario SuperAdmin '${SUPERADMIN_EMAIL}' creado`);
-
-  // Asignar rol global SUPERADMIN usando raw SQL
-  await prisma.$executeRaw`
-    INSERT INTO user_global_roles ("userId", "roleId")
-    VALUES (${superAdmin.id}::uuid, ${'660e8400-e29b-41d4-a716-446655440001'}::uuid)
-    ON CONFLICT DO NOTHING
-  `;
-
-  log.info('Rol SUPERADMIN asignado');
-  
-  log.warn('⚠️  IMPORTANTE: Cambia la contraseña del SuperAdmin después del primer login');
-  log.warn(`   Email: ${SUPERADMIN_EMAIL}`);
-  if (process.env.NODE_ENV !== 'production') {
-    log.warn(`   Password: ${SUPERADMIN_PASSWORD}`);
+  } catch (error: any) {
+    // Si el usuario ya existe (error de unique constraint), solo avisar
+    if (error.code === 'P2002') {
+      log.warn(`SuperAdmin '${SUPERADMIN_EMAIL}' ya existe`);
+    } else {
+      // Cualquier otro error, re-lanzarlo
+      throw error;
+    }
   }
 }
 
