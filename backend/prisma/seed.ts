@@ -346,10 +346,9 @@ const EMISSION_FACTORS = [
     source: 'HuellaChile_v3_2024',
     methodology: 'Factor oficial para vuelos nacionales en Chile',
     confidenceLevel: 'HIGH',
-    regionalScope: 'AMERICAS',
+    geographicScope: 'AMERICAS',
     version: 'v1.0',
     validFrom: new Date('2024-01-01'),
-    active: true
   },
   {
     id: '880e8400-e29b-41d4-a716-446655440002',
@@ -360,10 +359,9 @@ const EMISSION_FACTORS = [
     source: 'HuellaChile_v3_2024, IATA/ICCT',
     methodology: 'Derivado de factor nacional (0.1610 × 2.0)',
     confidenceLevel: 'MEDIUM',
-    regionalScope: 'AMERICAS',
+    geographicScope: 'AMERICAS',
     version: 'v1.0',
     validFrom: new Date('2024-01-01'),
-    active: true
   },
   {
     id: '880e8400-e29b-41d4-a716-446655440003',
@@ -374,10 +372,9 @@ const EMISSION_FACTORS = [
     source: 'HuellaChile_v3_2024, IATA/ICCT',
     methodology: 'Derivado de factor nacional (0.1610 × 3.0)',
     confidenceLevel: 'MEDIUM',
-    regionalScope: 'AMERICAS',
+    geographicScope: 'AMERICAS',
     version: 'v1.0',
     validFrom: new Date('2024-01-01'),
-    active: true
   },
   {
     id: '880e8400-e29b-41d4-a716-446655440004',
@@ -388,10 +385,9 @@ const EMISSION_FACTORS = [
     source: 'HuellaChile_v3_2024',
     methodology: 'Factor oficial para viajes aéreos internacionales',
     confidenceLevel: 'HIGH',
-    regionalScope: 'GLOBAL',
+    geographicScope: 'GLOBAL',
     version: 'v1.0',
     validFrom: new Date('2024-01-01'),
-    active: true
   },
   {
     id: '880e8400-e29b-41d4-a716-446655440005',
@@ -402,10 +398,9 @@ const EMISSION_FACTORS = [
     source: 'HuellaChile_v3_2024, IATA/ICCT',
     methodology: 'Derivado de factor internacional (0.1038 × 2.0)',
     confidenceLevel: 'MEDIUM',
-    regionalScope: 'GLOBAL',
+    geographicScope: 'GLOBAL',
     version: 'v1.0',
     validFrom: new Date('2024-01-01'),
-    active: true
   },
   {
     id: '880e8400-e29b-41d4-a716-446655440006',
@@ -416,10 +411,9 @@ const EMISSION_FACTORS = [
     source: 'HuellaChile_v3_2024, IATA/ICCT',
     methodology: 'Derivado de factor internacional (0.1038 × 3.0)',
     confidenceLevel: 'MEDIUM',
-    regionalScope: 'GLOBAL',
+    geographicScope: 'GLOBAL',
     version: 'v1.0',
     validFrom: new Date('2024-01-01'),
-    active:true
   }
 ];
 
