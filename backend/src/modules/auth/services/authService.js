@@ -250,6 +250,7 @@ async authenticateUser(email , password , clientInfo) {
       },
     });
 
+    console.log("🙋🏿‍♀️", user)
     if (!user) {
       return null;
     }
@@ -270,7 +271,7 @@ async authenticateUser(email , password , clientInfo) {
     const companyData = await prisma.companyUser.findFirst({
       where: {
         userId: user.id,
-        company: { status: 'ACTIVE' },
+        status:'active' ,
       },
       include: {
         company: true,
@@ -283,6 +284,7 @@ async authenticateUser(email , password , clientInfo) {
         },
       },
     });
+    //console.log("🤔", companyData)
 
     if (!companyData) {
       return null;
