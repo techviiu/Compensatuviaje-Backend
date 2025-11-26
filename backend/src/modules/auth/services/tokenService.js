@@ -195,7 +195,7 @@ generateAccessToken(payload) {
 
 
     } catch (error) {
-      logger.error('Error renewing token', error.message) 
+      logger.error('Error renewing token', error) 
       throw error;
     }
   }
