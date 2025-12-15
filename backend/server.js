@@ -9,9 +9,17 @@ require('dotenv').config();
 const logger = require('./src/utils/logger');
 const { PrismaClient } = require('@prisma/client');
 
-// Importar rutas
-const authRoutes = require('./src/modules/auth/routes/authRoutes');
-const onboardRoutes = require('./src/modules/onboard/routes/onboardRoutes');
+// Middleware compartido
+const { identifyUserType, logUserType } = require('./src/modules/shared/middleware/principal');
+
+// ==========================================
+// RUTAS POR PERFIL
+// ==========================================
+const publicRoutes = require('./src/modules/public/routes/publicRoutes');
+const b2bRoutes = require('./src/modules/b2b/routes/index');
+const b2cRoutes = require('./src/modules/b2c/routes/index');
+const partnerRoutes = require('./src/modules/partner/routes/index');
+const adminRoutes = require('./src/modules/admin/routes/index');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -116,14 +124,45 @@ app.get('/api/info', (req, res) => {
       app: 'CompensaTuViaje API',
       version: process.env.APP_VERSION || '1.0.0',
       environment: process.env.NODE_ENV,
-      modules: ['auth', 'onboard']
+      modules: {
+        active: ['public', 'b2b', 'admin'],
+        coming_soon: ['b2c', 'partner']
+      },
+      endpoints: {
+        public: '/api/public/*',
+        b2b: '/api/b2b/*',
+        b2c: '/api/b2c/*',
+        partner: '/api/partner/*',
+        admin: '/api/admin/*'
+      }
     }
   });
 });
 
-// Rutas de módulos
-app.use('/api/auth', authRoutes);
-app.use('/api/onboard', onboardRoutes);
+// ==========================================
+// RUTAS POR PERFIL (Nueva arquitectura)
+// ==========================================
+
+// Middleware de identificación de usuario (opcional, para logging)
+app.use(identifyUserType);
+if (process.env.NODE_ENV === 'development') {
+  app.use(logUserType);
+}
+
+// Rutas públicas (sin autenticación)
+app.use('/api/public', publicRoutes);
+
+// Rutas B2B (empresas)
+app.use('/api/b2b', b2bRoutes);
+
+// Rutas B2C (usuarios individuales) - En desarrollo
+app.use('/api/b2c', b2cRoutes);
+
+// Rutas Partner (proyectos ESG) - En desarrollo
+app.use('/api/partner', partnerRoutes);
+
+// Rutas Admin (SuperAdmin)
+app.use('/api/admin', adminRoutes);
 
 // Ruta no encontrada
 app.use((req, res) => {
@@ -227,8 +266,11 @@ const server = app.listen(PORT, HOST, () => {
     logger.info(' Available routes:', {
       health: 'GET /health',
       info: 'GET /api/info',
-      auth: 'POST /api/auth/login',
-      onboard: 'POST /api/onboard/companies'
+      public: '/api/public/*',
+      b2b: '/api/b2b/*',
+      b2c: '/api/b2c/* (coming soon)',
+      partner: '/api/partner/* (coming soon)',
+      admin: '/api/admin/*'
     });
   }
 });

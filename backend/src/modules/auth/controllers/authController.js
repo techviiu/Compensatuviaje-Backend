@@ -1,5 +1,3 @@
-// aqui es donde manjaremos los distintos requests HTTP específico de autenticación
-
 const authService = require('../services/authService');
 const tokenService = require('../services/tokenService');
 const auditService = require('../services/auditService');
@@ -8,18 +6,6 @@ const {validateLogin, validateRefresh, validateChangePassword} = require('../val
 const logger = require('../../../utils/logger'); 
 
 class AuthController{
-  /**
-   * POST  /api/auth/login
-   * 
-   * Flujo:
-   * 1: Validamos los inpusts como email, contraseña 
-   * 2: Extraemos la info del user como la ip y el User-Agent
-   * 3: Autenticaremos con authService para saver que esta en nuestra BD
-   * 4: Generar tokens con tokenService para que pueda acceder a las funcionalidades con perismos dado, por ahora desde la BD
-   * 5: Registrar evento en auditService para saver cuantas veces falló y evitar atacque de FB ( no implemetado aun)
-   * 6: Por úlitmo retornaremos la response HTTP estructurada para alimentar al front
-   */
-
   async login(req, res){
     const startTime = Date.now();
     try {

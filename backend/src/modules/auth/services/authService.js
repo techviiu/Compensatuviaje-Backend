@@ -1,9 +1,7 @@
 /**
- * aquí manejaremos la lógica de negocio del modulo de auth
+ * aquí manejaremos la lógica de negocio del modulo de auth  para B2B y SuperAdmin
  * tambien (no seria lo correcto utilizando clean archt) acceder a la
  * BD desde el servicio talvez crar un nueva capa de abstrancción para accederla, 
- * tambien validaremso las credenciales.
- * Tambien gestionaremos los intentos fallidos 
  * 
  */
 
@@ -19,10 +17,6 @@ class AuthService{
    * autenticamos al usuario con email y password
    * 1: Buscamos al user por email
    * 2: verificamos que la empresa al que pertenece esté activa
-   * 3: Verifcamos el ratelimiting   (cantidad de solicitudes)
-   * 4: Comparamos el password previamente hasheado
-   * 5: Actuliza ultimo login
-   * 6: Retorna informacion completa del usuario
    */
 
 async authenticateUser(email , password , clientInfo) {
