@@ -111,6 +111,13 @@ enum ApiProviderStatus {
   maintenance
 }
 
+// Proveedor de autenticación para B2C
+enum AuthProvider {
+  google
+  apple
+  email
+}
+
 // =========================
 // Núcleo B2B y perfiles
 // =========================
@@ -776,7 +783,9 @@ model ApiConfiguration {
 
 model Payment {
   id                String        @id @default(uuid()) @db.Uuid
-  companyId         String        @map("company_id") @db.Uuid
+  // Nullable FKs - Solo uno debe tener valor (B2B o B2C)
+  companyId         String?       @map("company_id") @db.Uuid
+  b2cUserId         String?       @map("b2c_user_id") @db.Uuid
   provider          String        @db.VarChar
   providerPaymentId String        @unique @map("provider_payment_id") @db.VarChar
   amount            Decimal       @db.Decimal(12, 2)
@@ -785,9 +794,10 @@ model Payment {
   paidAt            DateTime?     @map("paid_at")
   createdAt         DateTime      @default(now()) @map("created_at")
 
-  company Company  @relation(fields: [companyId], references: [id])
-  invoice Invoice?
-  refunds Refund[]
+  company  Company?  @relation(fields: [companyId], references: [id])
+  b2cUser  B2cUser?  @relation(fields: [b2cUserId], references: [id])
+  invoice  Invoice?
+  refunds  Refund[]
 
   @@map("payments")
 }
@@ -854,14 +864,17 @@ model CompensationOrder {
 
 model CertificateRequest {
   id                          String   @id @default(uuid()) @db.Uuid
-  companyId                   String   @map("company_id") @db.Uuid
+  // Nullable FKs - Solo uno debe tener valor (B2B o B2C)
+  companyId                   String?  @map("company_id") @db.Uuid
+  b2cUserId                   String?  @map("b2c_user_id") @db.Uuid
   scope                       String   @db.VarChar
   calculationMethodsBreakdown Json?    @map("calculation_methods_breakdown")
   message                     String?  @db.Text
   language                    String   @db.VarChar
   createdAt                   DateTime @default(now()) @map("created_at")
 
-  company      Company       @relation(fields: [companyId], references: [id])
+  company      Company?      @relation(fields: [companyId], references: [id])
+  b2cUser      B2cUser?      @relation(fields: [b2cUserId], references: [id])
   certificates Certificate[]
 
   @@map("certificate_requests")
@@ -873,7 +886,9 @@ model CertificateRequest {
 
 model Certificate {
   id                             String            @id @default(uuid()) @db.Uuid
-  companyId                      String            @map("company_id") @db.Uuid
+  // Nullable FKs - Solo uno debe tener valor (B2B o B2C)
+  companyId                      String?           @map("company_id") @db.Uuid
+  b2cUserId                      String?           @map("b2c_user_id") @db.Uuid
   requestId                      String            @map("request_id") @db.Uuid
   periodMonth                    DateTime          @map("period_month") @db.Date
   scope                          String            @db.VarChar
@@ -890,7 +905,8 @@ model Certificate {
   issuedAt                       DateTime?         @map("issued_at")
   createdAt                      DateTime          @default(now()) @map("created_at")
 
-  company             Company              @relation(fields: [companyId], references: [id])
+  company             Company?             @relation(fields: [companyId], references: [id])
+  b2cUser             B2cUser?             @relation(fields: [b2cUserId], references: [id])
   request             CertificateRequest   @relation(fields: [requestId], references: [id])
   hash                CertificateHash?
   projects            CertificateProject[]
@@ -1043,9 +1059,11 @@ model BadgeDefinition {
   minThreshold   Decimal?  @map("min_threshold") @db.Decimal(10, 2)
   percentileRule String?   @map("percentile_rule") @db.VarChar
   description    String?   @db.Text
+  iconUrl        String?   @map("icon_url") @db.VarChar
   createdAt      DateTime  @default(now()) @map("created_at")
 
-  companyBadges CompanyBadge[]
+  companyBadges  CompanyBadge[]
+  b2cUserBadges  B2cUserBadge[]
 
   @@map("badge_definitions")
 }
@@ -1083,14 +1101,17 @@ model RankingJob {
 
 model ShareEvent {
   id            String   @id @default(uuid()) @db.Uuid
-  companyId     String   @map("company_id") @db.Uuid
+  // Nullable FKs - Solo uno debe tener valor (B2B o B2C)
+  companyId     String?  @map("company_id") @db.Uuid
+  b2cUserId     String?  @map("b2c_user_id") @db.Uuid
   certificateId String?  @map("certificate_id") @db.Uuid
   network       String   @db.VarChar
   sharedAt      DateTime @map("shared_at")
   reach         Int?
   createdAt     DateTime @default(now()) @map("created_at")
 
-  company     Company      @relation(fields: [companyId], references: [id])
+  company     Company?     @relation(fields: [companyId], references: [id])
+  b2cUser     B2cUser?     @relation(fields: [b2cUserId], references: [id])
   certificate Certificate? @relation(fields: [certificateId], references: [id])
 
   @@map("share_events")
@@ -1296,4 +1317,137 @@ model JobsQueue {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("jobs_queue")
+}
+
+// =========================
+// B2C - Usuarios Individuales
+// =========================
+
+model B2cUser {
+  id                   String       @id @default(uuid()) @db.Uuid
+  supabaseUid          String       @unique @map("supabase_uid") @db.Uuid
+  email                String       @unique @db.VarChar(255)
+  nombre               String?      @db.VarChar(255)
+  avatarUrl            String?      @map("avatar_url") @db.VarChar(500)
+  provider             AuthProvider @default(google)
+  
+  // Preferencias
+  preferredCurrency    String       @default("USD") @map("preferred_currency") @db.VarChar(3)
+  preferredLanguage    String       @default("es") @map("preferred_language") @db.VarChar(5)
+  newsletterOptIn      Boolean      @default(false) @map("newsletter_opt_in")
+  
+  // Métricas acumuladas
+  totalEmissionsKg     Decimal      @default(0) @map("total_emissions_kg") @db.Decimal(12, 2)
+  totalCompensatedKg   Decimal      @default(0) @map("total_compensated_kg") @db.Decimal(12, 2)
+  totalFlights         Int          @default(0) @map("total_flights")
+  
+  // Timestamps
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+  lastLoginAt          DateTime?    @map("last_login_at")
+
+  // Relations
+  calculations         B2cCalculation[]
+  badges               B2cUserBadge[]
+  rankingSnapshots     B2cRankingSnapshot[]
+  savedTrips           B2cSavedTrip[]
+  payments             Payment[]
+  certificates         Certificate[]
+  certificateRequests  CertificateRequest[]
+  shareEvents          ShareEvent[]
+
+  @@map("b2c_users")
+}
+
+model B2cCalculation {
+  id                   String         @id @default(uuid()) @db.Uuid
+  userId               String         @map("user_id") @db.Uuid
+  
+  // Datos del vuelo
+  originAirport        String         @map("origin_airport") @db.VarChar(10)
+  destinationAirport   String         @map("destination_airport") @db.VarChar(10)
+  serviceClass         String         @map("service_class") @db.VarChar(50)
+  roundTrip            Boolean        @default(false) @map("round_trip")
+  passengers           Int            @default(1)
+  
+  // Resultados
+  distanceKm           Decimal        @map("distance_km") @db.Decimal(10, 2)
+  emissionsKg          Decimal        @map("emissions_kg") @db.Decimal(10, 2)
+  
+  // Compensación
+  isCompensated        Boolean        @default(false) @map("is_compensated")
+  compensatedAt        DateTime?      @map("compensated_at")
+  paymentId            String?        @map("payment_id") @db.Uuid
+  certificateId        String?        @map("certificate_id") @db.Uuid
+  
+  // Tracking
+  calculationSource    EmissionSource @map("calculation_source")
+  savedTripId          String?        @map("saved_trip_id") @db.Uuid
+  createdAt            DateTime       @default(now()) @map("created_at")
+
+  user      B2cUser       @relation(fields: [userId], references: [id])
+  savedTrip B2cSavedTrip? @relation(fields: [savedTripId], references: [id])
+
+  @@index([userId, isCompensated])
+  @@index([userId, createdAt])
+  @@map("b2c_calculations")
+}
+
+model B2cUserBadge {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  badgeId   String   @map("badge_id") @db.Uuid
+  earnedAt  DateTime @default(now()) @map("earned_at")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  B2cUser         @relation(fields: [userId], references: [id])
+  badge BadgeDefinition @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@map("b2c_user_badges")
+}
+
+model B2cRankingSnapshot {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  periodType       String   @map("period_type") @db.VarChar(20)
+  periodValue      String   @map("period_value") @db.VarChar(20)
+  
+  rankPosition     Int      @map("rank_position")
+  totalCompensatedKg Decimal @map("total_compensated_kg") @db.Decimal(12, 2)
+  totalFlights     Int      @map("total_flights")
+  percentile       Decimal  @db.Decimal(5, 2)
+  
+  snapshotAt       DateTime @default(now()) @map("snapshot_at")
+
+  user B2cUser @relation(fields: [userId], references: [id])
+
+  @@unique([userId, periodType, periodValue])
+  @@index([periodType, periodValue, rankPosition])
+  @@map("b2c_ranking_snapshots")
+}
+
+model B2cSavedTrip {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  name             String   @db.VarChar(255)
+  
+  // Datos agregados
+  tripsJson        Json     @map("trips_json")
+  totalEmissionsKg Decimal  @map("total_emissions_kg") @db.Decimal(10, 2)
+  totalDistanceKm  Decimal  @map("total_distance_km") @db.Decimal(12, 2)
+  
+  // Compensación
+  isCompensated    Boolean  @default(false) @map("is_compensated")
+  compensatedAt    DateTime? @map("compensated_at")
+  
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user         B2cUser          @relation(fields: [userId], references: [id])
+  calculations B2cCalculation[]
+
+  @@index([userId, isCompensated])
+  @@map("b2c_saved_trips")
 }

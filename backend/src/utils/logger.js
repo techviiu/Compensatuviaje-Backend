@@ -39,24 +39,35 @@ const canWriteLogs = () => {
 };
 
 const createLogger = () => {
-  const logsDir = path.join(__dirname, '../../../logs');
   const isProduction = process.env.NODE_ENV === 'production';
-  const fileLogsEnabled = canWriteLogs();
-
-  // Transport de consola (siempre presente)
+  const isDevelopment = !isProduction;
+  
+  // 🔧 En producción (SeeNode): SOLO Console (stdout/stderr)
+  // 🔧 En desarrollo: Console + File
   const transports = [
     new winston.transports.Console({
-      level: process.env.LOG_LEVEL || (isProduction ? 'warn' : 'info'), // Solo warn/error en producción
+      level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
-        isProduction ? winston.format.uncolorize() : winston.format.colorize(), // Sin colores en producción
-        winston.format.simple()
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        isProduction 
+          ? winston.format.json() // JSON para logs de producción (mejor para SeeNode)
+          : winston.format.combine(
+              winston.format.colorize(),
+              winston.format.printf(({ timestamp, level, message, ...meta }) => {
+                const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
+                return `${timestamp} [${level}]: ${message} ${metaStr}`;
+              })
+            )
       ),
-      silent: false // Asegurar que no esté silenciado
+      handleExceptions: true,
+      handleRejections: true
     })
   ];
 
-  // Solo agregar File transports si es posible escribir
-  if (fileLogsEnabled && !isProduction) {
+  // Solo archivos de log en desarrollo
+  if (isDevelopment && canWriteLogs()) {
+    const logsDir = path.join(__dirname, '../../../logs');
+    
     try {
       transports.push(
         new winston.transports.File({
@@ -64,20 +75,18 @@ const createLogger = () => {
           level: 'info',
           format: logFormat,
           maxsize: 5242880, // 5MB
-          maxFiles: 5,
-          handleExceptions: false
+          maxFiles: 5
         }),
         new winston.transports.File({
           filename: path.join(logsDir, 'error.log'),
           level: 'error',
           format: logFormat,
           maxsize: 5242880,
-          maxFiles: 5,
-          handleExceptions: false
+          maxFiles: 5
         })
       );
     } catch (error) {
-      console.warn('⚠️  Error al configurar archivos de log:', error.message);
+      console.warn('⚠️  No se pudieron crear archivos de log:', error.message);
     }
   }
 

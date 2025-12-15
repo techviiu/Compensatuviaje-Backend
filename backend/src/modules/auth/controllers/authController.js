@@ -180,12 +180,12 @@ class AuthController{
           error_message: 'Refresh token requerido'
         });
       }
-
+      //console.log("esto es todo toke auhtController: ",value )
       // desestructuracion al 2do nivel
-      const {refresh_token} = value
+      const {refreshToken} = value;
 
       // 2️ renovar tokens
-      const result = await tokenService.renewTokens(refresh_token, authService);
+      const result = await tokenService.renewTokens(refreshToken, authService);
 
       // 3️ Registrar evento
       await auditService.logEvent({
@@ -306,7 +306,7 @@ class AuthController{
 
   async me(req, res){
     try {
-      const userid = req.user.user_id;
+      const userId = req.user.user_id;
 
       const userInfo = await authService.getUserForToken(userId);
 
