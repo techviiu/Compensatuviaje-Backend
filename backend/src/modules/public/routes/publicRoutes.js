@@ -5,7 +5,7 @@ const companyController = require('../../onboard/controllers/companyController')
 const verificationController = require('../../onboard/controllers/verificationController');
 const documentController = require('../../onboard/controllers/documentController');
 const airportController = require('../../shared/airports/controllers/airportController');
-
+const calculatorController = require('../../shared/calculator/controllers/calculatorController');
 const router = express.Router();
 
 const authRateLimit = rateLimit({
@@ -87,5 +87,14 @@ router.get('/airports/search', airportController.searchAirports);
  * /api/public/airports/SCL
  */
 router.get('airports/:code', airportController.getByCode);
+
+
+
+/**
+ * Calcular emisiones de vuelo
+ * POST /api/public/calculator/estimate
+ * Body: { origin, destination, cabinCode, passengers, roundTrip, userId? }
+ */
+router.post('/calculator/estimate', calculatorController.calculateEstimate);
 
 module.exports = router;
