@@ -1,14 +1,3 @@
-/**
- *  AUDIT SERVICE
- * 
- * ¿Qué hace?
- * - Registra TODOS los eventos importantes del sistema
- * - Rastrea acciones de usuarios para auditoría y compliance
- * - Almacena evidencia forense para investigaciones de seguridad
- * - Proporciona trazabilidad completa de cambios
- * 
- */
-
 const { PrismaClient } = require('@prisma/client');
 const logger = require('../../../utils/logger');
 
@@ -27,13 +16,6 @@ class AuditService {
    * @param {Object} eventData.details - Detalles adicionales del evento (JSON)
    * @param {Object} eventData.changes - Cambios realizados (antes/después)
    * 
-   * ¿Por qué estos campos?
-   * - user_id: Quién hizo la acción (accountability)
-   * - company_id: Scope/contexto empresarial
-   * - action: Qué se hizo (para búsquedas y filtros)
-   * - entity_type/entity_id: Qué fue afectado (para rastrear historial)
-   * - details: Contexto adicional (IP, user-agent, etc.)
-   * - changes: Estado antes/después (para rollbacks y análisis)
    */
   async logEvent(eventData) {
     try {

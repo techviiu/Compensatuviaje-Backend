@@ -4,6 +4,7 @@ const authController = require('../../auth/controllers/authController');
 const companyController = require('../../onboard/controllers/companyController');
 const verificationController = require('../../onboard/controllers/verificationController');
 const documentController = require('../../onboard/controllers/documentController');
+const airportController = require('../../shared/airports/controllers/airportController');
 
 const router = express.Router();
 
@@ -72,5 +73,19 @@ router.get('/config/onboard', (req, res) => {
     }
   });
 });
+
+/**
+ * Ejemplos:
+ * - /api/public/airports/search?q=scl       → Por código IATA
+ * - /api/public/airports/search?q=santiago  → Por ciudad
+ * - /api/public/airports/search?q=chile     → Por país (todos de Chile)
+ * - /api/public/airports/search?q=santaigo  → Tolera typos!
+ */
+router.get('/airports/search', airportController.searchAirports);
+
+/**
+ * /api/public/airports/SCL
+ */
+router.get('airports/:code', airportController.getByCode);
 
 module.exports = router;
