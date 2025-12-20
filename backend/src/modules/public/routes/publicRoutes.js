@@ -36,7 +36,7 @@ const validationRateLimit = rateLimit({
 });
 
 /**
- * Login de usuario B2B (empresa)
+ * Login de usuario B2B (empresa) y admin 
  * POST /api/public/auth/login
  */
 router.post('/auth/login', authRateLimit, authController.login);

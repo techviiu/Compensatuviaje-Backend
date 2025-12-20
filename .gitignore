@@ -34,6 +34,7 @@ Arquitectura/
 /tests/
 backend/local-dev
 bd.postgres
+Frontend/
 
 
 jspm_packages/

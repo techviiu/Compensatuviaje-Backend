@@ -8,6 +8,7 @@ const profileRoutes = require('./profileRoutes');
 
 const { authenticate } = require('../../auth/middleware/auth');
 const { requireCompanyContext } = require('../../shared/middleware/companyContext');
+const { injectCompanyId } = require('../../shared/middleware/injectCompanyId');
 
 const router = express.Router();
 
@@ -16,6 +17,9 @@ router.use(authenticate);
 
 // Verificar que el usuario tiene contexto de empresa
 router.use(requireCompanyContext);
+
+// Inyectar company_id para controllers que esperan req.params.id
+router.use(injectCompanyId);
 
 
 // Perfil del usuario autenticado
