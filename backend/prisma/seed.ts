@@ -439,6 +439,133 @@ async function seedEmissionFactors() {
 }
 
 // ==========================================
+// AIRPORTS (Aeropuertos principales)
+// ==========================================
+
+const AIRPORTS = [
+  // Chile
+  { code: 'SCL', name: 'Aeropuerto Internacional Arturo Merino Benítez', city: 'Santiago', country: 'Chile', lat: -33.3930, lon: -70.7858 },
+  { code: 'IQQ', name: 'Aeropuerto Internacional Diego Aracena', city: 'Iquique', country: 'Chile', lat: -20.5352, lon: -70.1813 },
+  { code: 'ANF', name: 'Aeropuerto Cerro Moreno', city: 'Antofagasta', country: 'Chile', lat: -23.4445, lon: -70.4451 },
+  { code: 'CCP', name: 'Aeropuerto Carriel Sur', city: 'Concepción', country: 'Chile', lat: -36.7727, lon: -73.0631 },
+  { code: 'PMC', name: 'Aeropuerto El Tepual', city: 'Puerto Montt', country: 'Chile', lat: -41.4389, lon: -73.0940 },
+  { code: 'PUQ', name: 'Aeropuerto Carlos Ibáñez del Campo', city: 'Punta Arenas', country: 'Chile', lat: -53.0026, lon: -70.8546 },
+  { code: 'ARI', name: 'Aeropuerto Chacalluta', city: 'Arica', country: 'Chile', lat: -18.3485, lon: -70.3387 },
+  { code: 'LSC', name: 'Aeropuerto La Florida', city: 'La Serena', country: 'Chile', lat: -29.9162, lon: -71.1995 },
+  { code: 'ZCO', name: 'Aeropuerto La Araucanía', city: 'Temuco', country: 'Chile', lat: -38.9298, lon: -72.6512 },
+  { code: 'IPC', name: 'Aeropuerto Mataveri', city: 'Isla de Pascua', country: 'Chile', lat: -27.1648, lon: -109.4219 },
+  
+  // Perú
+  { code: 'LIM', name: 'Aeropuerto Internacional Jorge Chávez', city: 'Lima', country: 'Perú', lat: -12.0219, lon: -77.1143 },
+  { code: 'CUZ', name: 'Aeropuerto Internacional Alejandro Velasco Astete', city: 'Cusco', country: 'Perú', lat: -13.5357, lon: -71.9388 },
+  { code: 'AQP', name: 'Aeropuerto Internacional Alfredo Rodríguez Ballón', city: 'Arequipa', country: 'Perú', lat: -16.3411, lon: -71.5831 },
+  
+  // Argentina
+  { code: 'EZE', name: 'Aeropuerto Internacional Ministro Pistarini', city: 'Buenos Aires', country: 'Argentina', lat: -34.8222, lon: -58.5358 },
+  { code: 'AEP', name: 'Aeroparque Jorge Newbery', city: 'Buenos Aires', country: 'Argentina', lat: -34.5592, lon: -58.4156 },
+  { code: 'COR', name: 'Aeropuerto Internacional Ingeniero Ambrosio Taravella', city: 'Córdoba', country: 'Argentina', lat: -31.3236, lon: -64.2078 },
+  { code: 'MDZ', name: 'Aeropuerto Internacional El Plumerillo', city: 'Mendoza', country: 'Argentina', lat: -32.8317, lon: -68.7929 },
+  { code: 'BRC', name: 'Aeropuerto Internacional San Carlos de Bariloche', city: 'Bariloche', country: 'Argentina', lat: -41.1512, lon: -71.1575 },
+  { code: 'IGR', name: 'Aeropuerto Internacional Cataratas del Iguazú', city: 'Iguazú', country: 'Argentina', lat: -25.7373, lon: -54.4734 },
+  
+  // Brasil
+  { code: 'GRU', name: 'Aeropuerto Internacional de São Paulo-Guarulhos', city: 'São Paulo', country: 'Brasil', lat: -23.4356, lon: -46.4731 },
+  { code: 'GIG', name: 'Aeropuerto Internacional Tom Jobim', city: 'Río de Janeiro', country: 'Brasil', lat: -22.8100, lon: -43.2506 },
+  { code: 'BSB', name: 'Aeropuerto Internacional de Brasília', city: 'Brasília', country: 'Brasil', lat: -15.8711, lon: -47.9186 },
+  { code: 'SSA', name: 'Aeropuerto Internacional Luis Eduardo Magalhães', city: 'Salvador', country: 'Brasil', lat: -12.9086, lon: -38.3225 },
+  { code: 'REC', name: 'Aeropuerto Internacional Guararapes', city: 'Recife', country: 'Brasil', lat: -8.1264, lon: -34.9231 },
+  
+  // Colombia
+  { code: 'BOG', name: 'Aeropuerto Internacional El Dorado', city: 'Bogotá', country: 'Colombia', lat: 4.7016, lon: -74.1469 },
+  { code: 'MDE', name: 'Aeropuerto Internacional José María Córdova', city: 'Medellín', country: 'Colombia', lat: 6.1644, lon: -75.4231 },
+  { code: 'CTG', name: 'Aeropuerto Internacional Rafael Núñez', city: 'Cartagena', country: 'Colombia', lat: 10.4424, lon: -75.5130 },
+  { code: 'CLO', name: 'Aeropuerto Internacional Alfonso Bonilla Aragón', city: 'Cali', country: 'Colombia', lat: 3.5432, lon: -76.3816 },
+  
+  // México
+  { code: 'MEX', name: 'Aeropuerto Internacional Benito Juárez', city: 'Ciudad de México', country: 'México', lat: 19.4363, lon: -99.0721 },
+  { code: 'CUN', name: 'Aeropuerto Internacional de Cancún', city: 'Cancún', country: 'México', lat: 21.0365, lon: -86.8771 },
+  { code: 'GDL', name: 'Aeropuerto Internacional Miguel Hidalgo y Costilla', city: 'Guadalajara', country: 'México', lat: 20.5218, lon: -103.3111 },
+  { code: 'MTY', name: 'Aeropuerto Internacional General Mariano Escobedo', city: 'Monterrey', country: 'México', lat: 25.7785, lon: -100.1069 },
+  
+  // Ecuador
+  { code: 'UIO', name: 'Aeropuerto Internacional Mariscal Sucre', city: 'Quito', country: 'Ecuador', lat: -0.1292, lon: -78.3575 },
+  { code: 'GYE', name: 'Aeropuerto Internacional José Joaquín de Olmedo', city: 'Guayaquil', country: 'Ecuador', lat: -2.1574, lon: -79.8837 },
+  
+  // Otros Sudamérica
+  { code: 'ASU', name: 'Aeropuerto Internacional Silvio Pettirossi', city: 'Asunción', country: 'Paraguay', lat: -25.2400, lon: -57.5200 },
+  { code: 'MVD', name: 'Aeropuerto Internacional de Carrasco', city: 'Montevideo', country: 'Uruguay', lat: -34.8384, lon: -56.0308 },
+  { code: 'VVI', name: 'Aeropuerto Internacional Viru Viru', city: 'Santa Cruz', country: 'Bolivia', lat: -17.6448, lon: -63.1354 },
+  { code: 'LPB', name: 'Aeropuerto Internacional El Alto', city: 'La Paz', country: 'Bolivia', lat: -16.5133, lon: -68.1922 },
+  { code: 'CCS', name: 'Aeropuerto Internacional Simón Bolívar', city: 'Caracas', country: 'Venezuela', lat: 10.6012, lon: -66.9912 },
+  
+  // Estados Unidos
+  { code: 'MIA', name: 'Miami International Airport', city: 'Miami', country: 'Estados Unidos', lat: 25.7959, lon: -80.2870 },
+  { code: 'JFK', name: 'John F. Kennedy International Airport', city: 'Nueva York', country: 'Estados Unidos', lat: 40.6413, lon: -73.7781 },
+  { code: 'LAX', name: 'Los Angeles International Airport', city: 'Los Ángeles', country: 'Estados Unidos', lat: 33.9425, lon: -118.4081 },
+  { code: 'ORD', name: "O'Hare International Airport", city: 'Chicago', country: 'Estados Unidos', lat: 41.9742, lon: -87.9073 },
+  { code: 'DFW', name: 'Dallas/Fort Worth International Airport', city: 'Dallas', country: 'Estados Unidos', lat: 32.8998, lon: -97.0403 },
+  { code: 'ATL', name: 'Hartsfield-Jackson Atlanta International Airport', city: 'Atlanta', country: 'Estados Unidos', lat: 33.6407, lon: -84.4277 },
+  { code: 'SFO', name: 'San Francisco International Airport', city: 'San Francisco', country: 'Estados Unidos', lat: 37.6213, lon: -122.3790 },
+  { code: 'IAH', name: 'George Bush Intercontinental Airport', city: 'Houston', country: 'Estados Unidos', lat: 29.9902, lon: -95.3368 },
+  { code: 'LAS', name: 'Harry Reid International Airport', city: 'Las Vegas', country: 'Estados Unidos', lat: 36.0840, lon: -115.1537 },
+  { code: 'SEA', name: 'Seattle-Tacoma International Airport', city: 'Seattle', country: 'Estados Unidos', lat: 47.4502, lon: -122.3088 },
+  
+  // Canadá
+  { code: 'YYZ', name: 'Toronto Pearson International Airport', city: 'Toronto', country: 'Canadá', lat: 43.6777, lon: -79.6248 },
+  { code: 'YVR', name: 'Vancouver International Airport', city: 'Vancouver', country: 'Canadá', lat: 49.1947, lon: -123.1792 },
+  { code: 'YUL', name: 'Montréal-Pierre Elliott Trudeau International Airport', city: 'Montreal', country: 'Canadá', lat: 45.4707, lon: -73.7408 },
+  
+  // Europa
+  { code: 'MAD', name: 'Aeropuerto Adolfo Suárez Madrid-Barajas', city: 'Madrid', country: 'España', lat: 40.4936, lon: -3.5668 },
+  { code: 'BCN', name: 'Aeropuerto Josep Tarradellas Barcelona-El Prat', city: 'Barcelona', country: 'España', lat: 41.2974, lon: 2.0833 },
+  { code: 'CDG', name: 'Aéroport de Paris-Charles de Gaulle', city: 'París', country: 'Francia', lat: 49.0097, lon: 2.5479 },
+  { code: 'LHR', name: 'London Heathrow Airport', city: 'Londres', country: 'Reino Unido', lat: 51.4700, lon: -0.4543 },
+  { code: 'FCO', name: 'Aeroporto Leonardo da Vinci–Fiumicino', city: 'Roma', country: 'Italia', lat: 41.8003, lon: 12.2389 },
+  { code: 'FRA', name: 'Frankfurt Airport', city: 'Frankfurt', country: 'Alemania', lat: 50.0379, lon: 8.5622 },
+  { code: 'AMS', name: 'Amsterdam Airport Schiphol', city: 'Ámsterdam', country: 'Países Bajos', lat: 52.3105, lon: 4.7683 },
+  { code: 'LIS', name: 'Aeroporto Humberto Delgado', city: 'Lisboa', country: 'Portugal', lat: 38.7742, lon: -9.1342 },
+  { code: 'MUC', name: 'Munich Airport', city: 'Múnich', country: 'Alemania', lat: 48.3537, lon: 11.7750 },
+  { code: 'ZRH', name: 'Zurich Airport', city: 'Zúrich', country: 'Suiza', lat: 47.4582, lon: 8.5555 },
+  
+  // Asia y Oceanía
+  { code: 'DXB', name: 'Dubai International Airport', city: 'Dubái', country: 'Emiratos Árabes Unidos', lat: 25.2532, lon: 55.3657 },
+  { code: 'SIN', name: 'Singapore Changi Airport', city: 'Singapur', country: 'Singapur', lat: 1.3644, lon: 103.9915 },
+  { code: 'HKG', name: 'Hong Kong International Airport', city: 'Hong Kong', country: 'China', lat: 22.3080, lon: 113.9185 },
+  { code: 'NRT', name: 'Narita International Airport', city: 'Tokio', country: 'Japón', lat: 35.7720, lon: 140.3929 },
+  { code: 'ICN', name: 'Incheon International Airport', city: 'Seúl', country: 'Corea del Sur', lat: 37.4602, lon: 126.4407 },
+  { code: 'SYD', name: 'Sydney Kingsford Smith Airport', city: 'Sídney', country: 'Australia', lat: -33.9399, lon: 151.1753 },
+  { code: 'AKL', name: 'Auckland Airport', city: 'Auckland', country: 'Nueva Zelanda', lat: -37.0082, lon: 174.7850 },
+  
+  // Centroamérica y Caribe
+  { code: 'PTY', name: 'Aeropuerto Internacional de Tocumen', city: 'Ciudad de Panamá', country: 'Panamá', lat: 9.0714, lon: -79.3835 },
+  { code: 'SJO', name: 'Aeropuerto Internacional Juan Santamaría', city: 'San José', country: 'Costa Rica', lat: 9.9939, lon: -84.2088 },
+  { code: 'HAV', name: 'Aeropuerto Internacional José Martí', city: 'La Habana', country: 'Cuba', lat: 22.9892, lon: -82.4091 },
+  { code: 'SDQ', name: 'Aeropuerto Internacional Las Américas', city: 'Santo Domingo', country: 'República Dominicana', lat: 18.4297, lon: -69.6689 },
+  { code: 'SJU', name: 'Luis Muñoz Marín International Airport', city: 'San Juan', country: 'Puerto Rico', lat: 18.4394, lon: -66.0018 }
+];
+
+async function seedAirports() {
+  log.section('SEEDING AIRPORTS');
+  
+  for (const airport of AIRPORTS) {
+    const existing = await prisma.airport.findUnique({
+      where: { code: airport.code }
+    });
+
+    if (existing) {
+      log.warn(`Airport '${airport.code}' ya existe`);
+      continue;
+    }
+
+    await prisma.airport.create({
+      data: airport
+    });
+    
+    log.info(`Airport '${airport.city} (${airport.code})' creado`);
+  }
+}
+
+// ==========================================
 // 6. SUPERADMIN USER
 // ==========================================
 
@@ -502,7 +629,8 @@ async function main() {
     await seedServiceClasses();
     await seedPermissions();
     await seedRoles();
-    await seedEmissionFactors();
+    await seedAirports();  // Seed de aeropuertos
+    // await seedEmissionFactors(); // Comentado temporalmente por error en schema
     await seedSuperAdmin();
 
     console.log('\n');
@@ -513,6 +641,7 @@ async function main() {
     console.log(`   - ${SERVICE_CLASSES.length} Service Classes`);
     console.log(`   - ${PERMISSIONS.length} Permissions`);
     console.log(`   - ${ROLES.length} Roles`);
+    console.log(`   - ${AIRPORTS.length} Airports`);
     console.log(`   - ${EMISSION_FACTORS.length} Emission Factors`);
     console.log(`   - 1 SuperAdmin User`);
     console.log('\n');
