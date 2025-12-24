@@ -6,6 +6,8 @@ const verificationController = require('../../onboard/controllers/verificationCo
 const documentController = require('../../onboard/controllers/documentController');
 const airportController = require('../../shared/airports/controllers/airportController');
 const calculatorController = require('../../shared/calculator/controllers/calculatorController');
+const b2cAuthController = require('../../b2c/controllers/b2cAuthController');
+
 const router = express.Router();
 
 const authRateLimit = rateLimit({
@@ -96,5 +98,12 @@ router.get('airports/:code', airportController.getByCode);
  * Body: { origin, destination, cabinCode, passengers, roundTrip, userId? }
  */
 router.post('/calculator/estimate', calculatorController.calculateEstimate);
+
+// Login con Google
+router.get('/b2c/auth/google-url', authRateLimit, b2cAuthController.getGoogleUrl);
+
+router.post('/b2c/auth/verify', authRateLimit, b2cAuthController.verifyToken);
+
+
 
 module.exports = router;
