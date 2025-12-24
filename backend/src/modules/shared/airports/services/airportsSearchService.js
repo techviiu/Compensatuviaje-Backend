@@ -91,7 +91,7 @@ class AirportSearchService{
      * @returns {Promise<Object|null>}
      */
     async getAirportByCode(code) {
-        await this.loadCache();
+        await this.loadCacheOneTime();
 
         const upperCode = code.trim().toUpperCase();
         return this.airportsCache.find(a => a.code === upperCode) || null;
