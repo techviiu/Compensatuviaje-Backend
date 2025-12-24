@@ -86,7 +86,7 @@ router.get('/airports/search', airportController.searchAirports);
 /**
  * /api/public/airports/SCL
  */
-router.get('airports/:code', airportController.getByCode);
+router.get('/airports/:code', airportController.getByCode);
 
 
 
