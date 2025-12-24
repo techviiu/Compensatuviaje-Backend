@@ -24,7 +24,7 @@ async function searchAirports(req, res){
 
         res.json({
             success: true,
-            count: airports.count,
+            count: airports.length,
             query: queryValidation.sanitized,
             data: airports
         });
