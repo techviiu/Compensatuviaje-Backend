@@ -74,6 +74,7 @@ async authenticateUser(email , password , clientInfo) {
         role: globalRole.role.code, 
         permissions: ['*'], 
         is_super_admin: true,
+        user_type: user.userType || 'superadmin'
       };
 
       logger.info('SuperAdmin authenticated successfully', { userId: user.id, ip: clientInfo.ip });
@@ -118,6 +119,7 @@ async authenticateUser(email , password , clientInfo) {
         role: primaryCompanyUser.roles[0]?.role.code || 'viewer',
         permissions: permissions,
         is_super_admin: false,
+        user_type: user.userType || 'b2b'
     };
     
     logger.info('User authenticated successfully', { userId: user.id, company_id: company.id, ip: clientInfo.ip });
@@ -258,6 +260,7 @@ async authenticateUser(email , password , clientInfo) {
         role: user.globalRoles[0].role.code, 
         permissions: ['*'],
         is_super_admin: true,
+        user_type: user.userType || 'superadmin'
       };
     }
 
@@ -296,6 +299,7 @@ async authenticateUser(email , password , clientInfo) {
       role: companyData.roles[0]?.role.code || 'viewer',
       permissions: permissions,
       is_admin: companyData.isAdmin, 
+      user_type: user.userType || 'b2b'
     };
 
   } catch (error) {

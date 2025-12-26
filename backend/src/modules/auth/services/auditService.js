@@ -26,17 +26,10 @@ class AuditService {
       }
 
       // 2️ Preparar datos para insert
-      const auditRecord = {
-        // Campos requeridos
+      const auditData = {
         action: eventData.action,
         entityType: eventData.entity_type,
-        entityId: eventData.entity_id || 'unknown',
-        
-        // Campos opcionales de usuario/empresa
-        actorUserId: eventData.user_id || null,
-        companyId: eventData.company_id || null,
-        
-        // Metadatos como JSON
+        entityId: eventData.entity_id && eventData.entity_id !== 'unknown' ? eventData.entity_id : undefined,
         changesJson: JSON.stringify({
           details: eventData.details || {},
           changes: eventData.changes || {},
@@ -48,10 +41,15 @@ class AuditService {
         })
       };
 
-      logger.info("❌Esto lo que tengo en auditLog",auditRecord)
+      // Agregar actor si existe
+      if (eventData.user_id) {
+        auditData.actor = { connect: { id: eventData.user_id } };
+      }
+
+      logger.info("❌Esto lo que tengo en auditLog", auditData)
       // 3️ Insertar en base de datos
       const result = await prisma.auditLog.create({
-        data: auditRecord
+        data: auditData
       });
 
       if (process.env.LOG_LEVEL === 'debug') {

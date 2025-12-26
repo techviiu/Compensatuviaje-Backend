@@ -91,9 +91,11 @@ class AuthController{
           name: userInfo.name,
           company_id: userInfo.company_id,
           company_name: userInfo.company_name,
-          role:userInfo.role,
-          permissions:userInfo.permissions,
-          is_admin: userInfo.is_admin
+          role: userInfo.role,
+          permissions: userInfo.permissions,
+          is_admin: userInfo.is_admin,
+          is_super_admin: userInfo.is_super_admin || false,
+          user_type: userInfo.user_type || 'b2b'
         },
         meta : {
           login_time : new Date().toISOString(),

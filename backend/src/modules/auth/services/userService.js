@@ -35,16 +35,9 @@ class UserService {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          company: {
-            select: {
-              id: true,
-              name: true,
-              businessName: true,
-              rut: true,
-              industry: true,
-              isActive: true,
-              plan: true,
-              settings: true
+          companyUsers: {
+            include: {
+              company: true
             }
           },
           // Incluir datos de auditoría reciente
@@ -66,20 +59,26 @@ class UserService {
         throw new Error('USER_NOT_FOUND');
       }
 
+      const primaryCompanyUser = user.companyUsers?.[0];
+      const company = primaryCompanyUser?.company;
+
       // Formatear respuesta (sin datos sensibles)
       return {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
-        isActive: user.isActive,
-        emailVerified: user.emailVerified,
-        preferences: user.preferences || {},
-        lastLoginAt: user.lastLoginAt,
+        status: user.status,
+        isSuperAdmin: user.isSuperAdmin,
+        userType: user.userType,
         createdAt: user.createdAt,
         
         // Información de empresa
-        company: user.company,
+        company: company ? {
+          id: company.id,
+          name: company.nombreComercial,
+          rut: company.rut,
+          status: company.status
+        } : null,
         
         // Actividad reciente (para dashboard personal)
         recentActivity: user.auditLogs.map(log => ({
