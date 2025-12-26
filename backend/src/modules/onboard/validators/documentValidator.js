@@ -136,6 +136,16 @@ const validateFile = (file, docType) => {
  */
 const multerFileFilter = (req, file, cb) => {
   const docType = req.body.docType || req.query.docType;
+  
+  // Si no hay docType, validamos solo el mimeType general
+  if (!docType) {
+     if (DOCUMENT_CONFIG.allowedMimeTypes.includes(file.mimetype)) {
+       return cb(null, true);
+     } else {
+       return cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}`), false);
+     }
+  }
+
   const validation = validateFile(file, docType);
   
   if (validation.isValid) {

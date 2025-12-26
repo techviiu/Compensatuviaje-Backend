@@ -85,7 +85,8 @@ const uploadDocument = async (companyId, file, docType, uploadedByUserId, descri
           companyId,
           docType,
           fileId: fileUpload.id,
-          status: 'uploaded'
+          status: 'uploaded',
+          uploadedAt: new Date()
         }
       });
 

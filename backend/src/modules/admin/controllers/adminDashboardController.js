@@ -121,7 +121,7 @@ const getCompaniesStats = async (req, res) => {
     });
 
     const industryStats = await prisma.company.groupBy({
-      by: ['industria'],
+      by: ['giroSii'],
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
       take: 10
@@ -141,7 +141,7 @@ const getCompaniesStats = async (req, res) => {
 
     // Top industrias
     const topIndustries = industryStats.map(s => ({
-      industry: s.industria || 'Sin especificar',
+      industry: s.giroSii || 'Sin especificar',
       count: s._count.id
     }));
 
@@ -202,13 +202,13 @@ async function getB2COverview() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const [total, active30d, newThisMonth] = await Promise.all([
-      prisma.b2CUser.count(),
-      prisma.b2CUser.count({
+      prisma.b2cUser.count(),
+      prisma.b2cUser.count({
         where: {
           lastLoginAt: { gte: thirtyDaysAgo }
         }
       }),
-      prisma.b2CUser.count({
+      prisma.b2cUser.count({
         where: {
           createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
         }
@@ -222,8 +222,8 @@ async function getB2COverview() {
     try {
       // Intentar obtener stats de cálculos B2C si la tabla existe
       const calcStats = await prisma.$queryRaw`
-        SELECT COUNT(DISTINCT "userId") as users_with_calcs, COUNT(*) as total_calcs
-        FROM "B2CCalculation" WHERE "isCompensated" = true
+        SELECT COUNT(DISTINCT "user_id") as users_with_calcs, COUNT(*) as total_calcs
+        FROM "b2c_calculations" WHERE "is_compensated" = true
       `;
       if (calcStats[0]) {
         withCompensations = Number(calcStats[0].users_with_calcs) || 0;
@@ -324,7 +324,7 @@ async function getRecentActivity(limit = 10) {
     });
 
     // Últimos usuarios B2C
-    const recentB2C = await prisma.b2CUser.findMany({
+    const recentB2C = await prisma.b2cUser.findMany({
       take: 3,
       orderBy: { createdAt: 'desc' },
       select: {

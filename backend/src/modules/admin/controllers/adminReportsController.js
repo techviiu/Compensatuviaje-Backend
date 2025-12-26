@@ -262,7 +262,7 @@ const getB2CReport = async (req, res) => {
   try {
     const {
       period = '30d',
-      country,
+      // country, // No existe en schema
       dateFrom,
       dateTo
     } = req.query;
@@ -274,47 +274,33 @@ const getB2CReport = async (req, res) => {
     const where = {
       createdAt: { gte: startDate, lte: endDate }
     };
-    if (country) where.pais = country;
+    // if (country) where.pais = country;
 
     // Obtener usuarios del período
-    const users = await prisma.b2CUser.findMany({
+    const users = await prisma.b2cUser.findMany({
       where,
       select: {
         id: true,
         nombre: true,
-        apellido: true,
         email: true,
-        pais: true,
-        authProvider: true,
+        provider: true,
         lastLoginAt: true,
         createdAt: true
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    // Estadísticas por país
-    const byCountry = await prisma.b2CUser.groupBy({
-      by: ['pais'],
-      where,
-      _count: { id: true }
-    });
-
     // Estadísticas por proveedor de auth
-    const byProvider = await prisma.b2CUser.groupBy({
-      by: ['authProvider'],
+    const byProvider = await prisma.b2cUser.groupBy({
+      by: ['provider'],
       where,
       _count: { id: true }
     });
 
     // Formatear datos
-    const countryMap = {};
-    byCountry.forEach(c => {
-      countryMap[c.pais || 'Sin especificar'] = c._count.id;
-    });
-
     const providerMap = {};
     byProvider.forEach(p => {
-      providerMap[p.authProvider || 'email'] = p._count.id;
+      providerMap[p.provider || 'email'] = p._count.id;
     });
 
     res.json({
@@ -322,21 +308,21 @@ const getB2CReport = async (req, res) => {
       data: {
         users: users.map(u => ({
           id: u.id,
-          name: `${u.nombre || ''} ${u.apellido || ''}`.trim() || u.email,
+          name: u.nombre || u.email,
           email: u.email,
-          country: u.pais,
-          authProvider: u.authProvider,
+          country: 'N/A',
+          authProvider: u.provider,
           lastLoginAt: u.lastLoginAt,
           createdAt: u.createdAt
         })),
         stats: {
           total: users.length,
-          byCountry: countryMap,
+          byCountry: {},
           byAuthProvider: providerMap
         },
         filters: {
           period,
-          country,
+          // country,
           dateFrom: startDate,
           dateTo: endDate
         }
@@ -744,21 +730,15 @@ async function getRevenueBySource(startDate, endDate) {
     _count: { id: true }
   });
 
-  // B2C (si existe la tabla)
-  let b2cStats = { _sum: { amountClp: 0 }, _count: { id: 0 } };
-  try {
-    const b2cResult = await prisma.$queryRaw`
-      SELECT COALESCE(SUM("amountClp"), 0) as total, COUNT(*) as count
-      FROM "B2CCertificate"
-      WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
-    `;
-    if (b2cResult[0]) {
-      b2cStats._sum.amountClp = Number(b2cResult[0].total);
-      b2cStats._count.id = Number(b2cResult[0].count);
-    }
-  } catch (error) {
-    // Tabla no existe
-  }
+  // B2C
+  const b2cStats = await prisma.certificate.aggregate({
+    where: {
+      createdAt: { gte: startDate, lte: endDate },
+      b2cUserId: { not: null }
+    },
+    _sum: { amountClp: true },
+    _count: { id: true }
+  });
 
   return [
     {
@@ -905,7 +885,7 @@ async function getExportCompaniesData(startDate, endDate) {
 }
 
 async function getExportB2CData(startDate, endDate) {
-  const users = await prisma.b2CUser.findMany({
+  const users = await prisma.b2cUser.findMany({
     where: {
       createdAt: { gte: startDate, lte: endDate }
     },
@@ -913,15 +893,14 @@ async function getExportB2CData(startDate, endDate) {
   });
 
   const columns = [
-    'Fecha Registro', 'Nombre', 'Email', 'País', 'Proveedor Auth', 'Último Login'
+    'Fecha Registro', 'Nombre', 'Email', 'Proveedor Auth', 'Último Login'
   ];
 
   const rows = users.map(u => ({
     'Fecha Registro': u.createdAt.toISOString().split('T')[0],
-    Nombre: `${u.nombre || ''} ${u.apellido || ''}`.trim(),
+    Nombre: u.nombre || '',
     Email: u.email,
-    País: u.pais || '',
-    'Proveedor Auth': u.authProvider || 'email',
+    'Proveedor Auth': u.provider || 'email',
     'Último Login': u.lastLoginAt ? u.lastLoginAt.toISOString().split('T')[0] : ''
   }));
 

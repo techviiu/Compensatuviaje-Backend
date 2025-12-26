@@ -148,7 +148,7 @@ const validateCorporateDomain = [
  */
 const validateDocumentUpload = [
     body('docType')
-        .isIn(['escritura_constitucion', 'rut_empresa', 'representante_lega', 'poder_notarial', 'otro'])
+        .isIn(['escritura_constitucion', 'rut_empresa', 'representante_legal', 'poder_notarial', 'otro'])
         .withMessage('Nombre de documento inválido'),
     body('description')
         .optional()

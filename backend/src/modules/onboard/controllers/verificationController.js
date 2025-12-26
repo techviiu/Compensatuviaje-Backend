@@ -31,7 +31,15 @@ const addDomain = [
   // Controller
   async (req, res) => {
     try {
-      const { id: companyId } = req.params;
+      const companyId = req.params.id || req.user?.company_id || req.user?.companyId;
+      
+      if (!companyId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de empresa no proporcionado'
+        });
+      }
+
       const { domain } = req.body;
       const userId = req.user.id;
 
@@ -99,7 +107,14 @@ const addDomain = [
  */
 const listCompanyDomains = async (req, res) => {
   try {
-    const { id: companyId } = req.params;
+    const companyId = req.params.id || req.user?.company_id || req.user?.companyId;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de empresa no proporcionado'
+      });
+    }
 
     const domains = await verificationService.getCompanyDomains(companyId);
 

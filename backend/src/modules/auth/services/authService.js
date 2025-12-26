@@ -330,6 +330,11 @@ async authenticateUser(email , password , clientInfo) {
                 }
               }
             }
+          },
+          globalRoles: {
+            include: {
+              role: true
+            }
           }
         }
       });

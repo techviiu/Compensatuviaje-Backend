@@ -8,7 +8,7 @@ const requireSuperAdmin = (req, res, next) => {
   }
 
   // Verificar si tiene rol global de SuperAdmin
-  const isSuperAdmin = req.user.global_roles?.some(
+  const isSuperAdmin = req.user.isSuperAdmin || req.user.global_roles?.some(
     gr => gr.role?.name === 'super_admin'
   );
 

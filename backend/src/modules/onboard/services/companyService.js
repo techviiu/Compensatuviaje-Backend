@@ -173,6 +173,10 @@ const createCompany = async (companyData, adminUserData) => {
  */
 const getCompanyById = async (companyId, includeUsers = false) =>{
     try {
+        if (!companyId) {
+            throw new Error('COMPANY_ID_REQUIRED');
+        }
+
         const include = {
             settings: true,
             documets: {
@@ -260,11 +264,35 @@ const updateCompany = async (companyId, updateData, actorUserId) => {
     }
       console.log(" 🍻Empresa id: ", companyId)
 
+    // Filtrar y mapear campos permitidos
+    const allowedFields = [
+        'razonSocial', 'rut', 'nombreComercial', 'giroSii', 
+        'tamanoEmpresa', 'direccion', 'phone', 'slugPublico', 
+        'publicProfileOptIn', 'preferredCalculationMethod', 'status'
+    ];
+
+    const dataToUpdate = {};
+
+    // Mapear address -> direccion si es necesario
+    if (updateData.address && !updateData.direccion) {
+        let fullAddress = updateData.address;
+        if (updateData.city) fullAddress += `, ${updateData.city}`;
+        if (updateData.country) fullAddress += `, ${updateData.country}`;
+        dataToUpdate.direccion = fullAddress;
+    }
+
+    // Copiar campos permitidos
+    Object.keys(updateData).forEach(key => {
+        if (allowedFields.includes(key)) {
+            dataToUpdate[key] = updateData[key];
+        }
+    });
+
     // 3. Actualizar empresa
     const updatedCompany = await prisma.company.update({
       where: { id: companyId },
       data: {
-        ...updateData,
+        ...dataToUpdate,
         updatedAt: new Date()
       }
     });

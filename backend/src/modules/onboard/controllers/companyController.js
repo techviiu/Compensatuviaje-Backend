@@ -99,7 +99,15 @@ const registerCompany = [
 
 const getCompany = async (req, res) =>{
     try {
-        const {id} = req.params;
+        const id = req.params.id || req.user?.company_id || req.user?.companyId;
+
+        if (!id) {
+             return res.status(400).json({
+                success: false,
+                message: 'ID de empresa no proporcionado'
+            });
+        }
+
         const includeUsers = req.query.includeUsers === 'true';
 
         const company = await companyService.getCompanyById(id, includeUsers)
@@ -112,7 +120,7 @@ const getCompany = async (req, res) =>{
     } catch (error) {
         logger.error('Error obteniendo empresa', { 
         error: error.message,
-        companyId: req.params.id 
+        companyId: req.params.id || req.user?.company_id
         });
 
         if (error.message === 'Empresa no encontrada') {
@@ -124,7 +132,8 @@ const getCompany = async (req, res) =>{
 
         res.status(500).json({
         success: false,
-        message: 'Error interno del servidor'
+        message: 'Error interno del servidor',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
             
     }
@@ -139,7 +148,15 @@ const updateCompany = [
 
     async(req, res) => {
         try {
-            const {id} = req.params;
+            const id = req.params.id || req.user?.company_id || req.user?.companyId;
+            
+            if (!id) {
+                return res.status(400).json({
+                   success: false,
+                   message: 'ID de empresa no proporcionado'
+               });
+           }
+
             const updateData = req.body;
             // esto biene del middleware 
             const userId = req.user.user_id;

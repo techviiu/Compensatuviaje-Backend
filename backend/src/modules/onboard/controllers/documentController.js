@@ -8,6 +8,7 @@
  */
 
 const multer = require('multer');
+const path = require('path');
 const documentService = require('../services/documentService');
 const {validateDocumentUpload, handleValidationErrors}  = require('../validators/onboardValidator');
 
@@ -40,7 +41,15 @@ const uploadDocument = [
   // Controller
   async (req, res) => {
     try {
-      const { id: companyId } = req.params;
+      const companyId = req.params.id || req.user?.company_id || req.user?.companyId;
+      
+      if (!companyId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de empresa no proporcionado'
+        });
+      }
+
       const { docType, description } = req.body;
       const file = req.file;
       const userId = req.user.id;
@@ -119,7 +128,15 @@ const uploadDocument = [
 
 const listDocuments = async (req, res) => {
   try {
-    const { id: companyId } = req.params;
+    const companyId = req.params.id || req.user?.company_id || req.user?.companyId;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de empresa no proporcionado'
+      });
+    }
+
     const { docType } = req.query;
 
     const documents = await documentService.getCompanyDocuments(companyId, docType);
@@ -176,7 +193,7 @@ const downloadDocument = async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.filename}"`);
 
     // Enviar archivo
-    res.sendFile(fileInfo.filePath);
+    res.sendFile(path.resolve(fileInfo.filePath));
 
   } catch (error) {
     logger.error('Error descargando documento', { 
@@ -248,7 +265,14 @@ const deleteDocument = async (req, res) => {
  */
 const validateDocuments = async (req, res) => {
   try {
-    const { id: companyId } = req.params;
+    const companyId = req.params.id || req.user?.company_id || req.user?.companyId;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de empresa no proporcionado'
+      });
+    }
 
     const validation = await documentService.validateCompanyDocuments(companyId);
 

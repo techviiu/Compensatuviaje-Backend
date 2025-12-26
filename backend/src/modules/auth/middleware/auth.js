@@ -222,11 +222,14 @@ const authMiddleware = async (req, res, next) =>{
  
 
     req.user = {
+      id: decoded.user_id,
       user_id: decoded.user_id,
       email: decoded.email,
       company_id: decoded.company_id,
+      companyId: decoded.company_id,
       role: decoded.role,
       permissions: decoded.permissions || [],
+      global_roles: userExists.globalRoles || [],
       is_admin: companyUser?.isAdmin || false,
       isSuperAdmin,
       company: company ? {
@@ -310,6 +313,7 @@ const optionalAuthMiddleware = async (req, res, next) => {
               company_id: validation.decoded.company_id,
               role: validation.decoded.role,
               permissions: validation.decoded.permissions || [],
+              global_roles: userExists.globalRoles || [],
               is_admin: companyUser.isAdmin,
               isSuperAdmin,
               company: {

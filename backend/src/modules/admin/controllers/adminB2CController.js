@@ -33,14 +33,12 @@ const listUsers = async (req, res) => {
     if (search) {
       where.OR = [
         { nombre: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { apellido: { contains: search, mode: 'insensitive' } }
+        { email: { contains: search, mode: 'insensitive' } }
       ];
     }
 
-    if (status) {
-      where.status = status;
-    }
+    // status no existe en B2cUser schema, ignoramos por ahora o asumimos activo
+    // if (status) { where.status = status; }
 
     if (dateFrom || dateTo) {
       where.createdAt = {};
@@ -50,7 +48,7 @@ const listUsers = async (req, res) => {
 
     // Ejecutar consultas en paralelo
     const [users, total] = await Promise.all([
-      prisma.b2CUser.findMany({
+      prisma.b2cUser.findMany({
         where,
         skip,
         take,
@@ -59,18 +57,18 @@ const listUsers = async (req, res) => {
           id: true,
           email: true,
           nombre: true,
-          apellido: true,
-          telefono: true,
-          pais: true,
-          status: true,
-          emailVerified: true,
-          authProvider: true,
+          // apellido: true, // No existe en schema
+          // telefono: true, // No existe en schema
+          // pais: true, // No existe en schema
+          // status: true, // No existe en schema
+          // emailVerified: true, // No existe en schema
+          provider: true, // authProvider -> provider
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true
         }
       }),
-      prisma.b2CUser.count({ where })
+      prisma.b2cUser.count({ where })
     ]);
 
     // Agregar estadísticas de compensación a cada usuario
@@ -113,25 +111,21 @@ const getUserDetail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await prisma.b2CUser.findUnique({
+    const user = await prisma.b2cUser.findUnique({
       where: { id },
       select: {
         id: true,
         email: true,
         nombre: true,
-        apellido: true,
-        telefono: true,
-        pais: true,
-        ciudad: true,
-        direccion: true,
-        status: true,
-        emailVerified: true,
-        authProvider: true,
-        supabaseId: true,
         avatarUrl: true,
-        preferences: true,
+        provider: true,
+        preferredCurrency: true,
+        preferredLanguage: true,
+        newsletterOptIn: true,
+        totalEmissionsKg: true,
+        totalCompensatedKg: true,
+        totalFlights: true,
         lastLoginAt: true,
-        loginCount: true,
         createdAt: true,
         updatedAt: true
       }
@@ -188,7 +182,7 @@ const getUserActivity = async (req, res) => {
     const take = parseInt(limit);
 
     // Verificar que el usuario existe
-    const userExists = await prisma.b2CUser.findUnique({
+    const userExists = await prisma.b2cUser.findUnique({
       where: { id },
       select: { id: true }
     });
@@ -238,25 +232,19 @@ const getB2CStats = async (req, res) => {
       totalUsers,
       newUsers,
       activeUsers,
-      authProviderStats,
-      countryStats
+      authProviderStats
+      // countryStats // pais no existe en schema
     ] = await Promise.all([
-      prisma.b2CUser.count(),
-      prisma.b2CUser.count({
+      prisma.b2cUser.count(),
+      prisma.b2cUser.count({
         where: { createdAt: { gte: dateFrom } }
       }),
-      prisma.b2CUser.count({
+      prisma.b2cUser.count({
         where: { lastLoginAt: { gte: dateFrom } }
       }),
-      prisma.b2CUser.groupBy({
-        by: ['authProvider'],
+      prisma.b2cUser.groupBy({
+        by: ['provider'],
         _count: { id: true }
-      }),
-      prisma.b2CUser.groupBy({
-        by: ['pais'],
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 10
       })
     ]);
 
@@ -268,14 +256,8 @@ const getB2CStats = async (req, res) => {
     // Formatear estadísticas de proveedores de auth
     const byAuthProvider = {};
     authProviderStats.forEach(stat => {
-      byAuthProvider[stat.authProvider || 'email'] = stat._count.id;
+      byAuthProvider[stat.provider || 'email'] = stat._count.id;
     });
-
-    // Formatear estadísticas por país
-    const byCountry = countryStats.map(stat => ({
-      country: stat.pais || 'No especificado',
-      count: stat._count.id
-    }));
 
     // Obtener métricas de compensación
     const compensationMetrics = await getGlobalCompensationMetrics(dateFrom);
@@ -290,7 +272,7 @@ const getB2CStats = async (req, res) => {
           retentionRate: parseFloat(retentionRate)
         },
         byAuthProvider,
-        byCountry,
+        byCountry: [], // No disponible en schema actual
         compensations: compensationMetrics,
         period
       }
@@ -310,16 +292,14 @@ const getB2CStats = async (req, res) => {
 
 async function getUserCompensationStats(userId) {
   try {
-    // Intentar obtener de tabla B2CCalculation si existe
     const stats = await prisma.$queryRaw`
       SELECT 
         COUNT(*) as total_calculations,
-        COALESCE(SUM(CASE WHEN "isCompensated" = true THEN 1 ELSE 0 END), 0) as compensated_count,
-        COALESCE(SUM("emissionsKg"), 0) as total_emissions,
-        COALESCE(SUM(CASE WHEN "isCompensated" = true THEN "emissionsKg" ELSE 0 END), 0) as compensated_emissions,
-        COALESCE(SUM(CASE WHEN "isCompensated" = true THEN "amountClp" ELSE 0 END), 0) as total_spent
-      FROM "B2CCalculation"
-      WHERE "userId" = ${userId}
+        COALESCE(SUM(CASE WHEN "is_compensated" = true THEN 1 ELSE 0 END), 0) as compensated_count,
+        COALESCE(SUM("emissions_kg"), 0) as total_emissions,
+        COALESCE(SUM(CASE WHEN "is_compensated" = true THEN "emissions_kg" ELSE 0 END), 0) as compensated_emissions
+      FROM "b2c_calculations"
+      WHERE "user_id" = ${userId}::uuid
     `;
 
     if (stats[0]) {
@@ -328,7 +308,7 @@ async function getUserCompensationStats(userId) {
         compensatedCount: Number(stats[0].compensated_count) || 0,
         totalEmissionsKg: Number(stats[0].total_emissions) || 0,
         compensatedEmissionsKg: Number(stats[0].compensated_emissions) || 0,
-        totalSpentCLP: Number(stats[0].total_spent) || 0
+        totalSpentCLP: 0 // No disponible en tabla
       };
     }
 
@@ -340,7 +320,7 @@ async function getUserCompensationStats(userId) {
       totalSpentCLP: 0
     };
   } catch (error) {
-    // Tabla no existe o error - retornar valores por defecto
+    console.error('Error getUserCompensationStats', error);
     return {
       totalCalculations: 0,
       compensatedCount: 0,
@@ -355,26 +335,27 @@ async function getUserCompensationHistory(userId, limit = 10) {
   try {
     const calculations = await prisma.$queryRaw`
       SELECT 
-        id, "calculationType", origin, destination, "emissionsKg",
-        "amountClp", "isCompensated", "compensatedAt", "createdAt"
-      FROM "B2CCalculation"
-      WHERE "userId" = ${userId}
-      ORDER BY "createdAt" DESC
+        id, "origin_airport" as origin, "destination_airport" as destination, "emissions_kg" as "emissionsKg",
+        "is_compensated" as "isCompensated", "compensated_at" as "compensatedAt", "created_at" as "createdAt"
+      FROM "b2c_calculations"
+      WHERE "user_id" = ${userId}::uuid
+      ORDER BY "created_at" DESC
       LIMIT ${limit}
     `;
 
     return calculations.map(calc => ({
       id: calc.id,
-      type: calc.calculationType,
+      type: 'flight', // Default type since we only have flights for now
       origin: calc.origin,
       destination: calc.destination,
       emissionsKg: Number(calc.emissionsKg),
-      amountCLP: Number(calc.amountClp),
+      amountCLP: 0,
       isCompensated: calc.isCompensated,
       compensatedAt: calc.compensatedAt,
       createdAt: calc.createdAt
     }));
   } catch (error) {
+    console.error('Error getUserCompensationHistory', error);
     return [];
   }
 }
@@ -383,25 +364,25 @@ async function getUserCertificates(userId, limit = 10) {
   try {
     const certificates = await prisma.$queryRaw`
       SELECT 
-        id, "certificateNumber", "emissionsKg", "amountClp",
-        "projectId", status, "pdfUrl", "createdAt"
-      FROM "B2CCertificate"
-      WHERE "userId" = ${userId}
-      ORDER BY "createdAt" DESC
+        id, number, "tons_compensated", "total_amount_clp",
+        status, "pdf_url", "created_at"
+      FROM "certificates"
+      WHERE "b2c_user_id" = ${userId}::uuid
+      ORDER BY "created_at" DESC
       LIMIT ${limit}
     `;
 
     return certificates.map(cert => ({
       id: cert.id,
-      certificateNumber: cert.certificateNumber,
-      emissionsKg: Number(cert.emissionsKg),
-      amountCLP: Number(cert.amountClp),
-      projectId: cert.projectId,
+      certificateNumber: cert.number,
+      emissionsKg: Number(cert.tons_compensated) * 1000,
+      amountCLP: Number(cert.total_amount_clp),
       status: cert.status,
-      pdfUrl: cert.pdfUrl,
-      createdAt: cert.createdAt
+      pdfUrl: cert.pdf_url,
+      createdAt: cert.created_at
     }));
   } catch (error) {
+    console.error('Error getUserCertificates', error);
     return [];
   }
 }
@@ -412,20 +393,20 @@ async function getUserRecentActivity(userId, limit = 10) {
   try {
     // Obtener cálculos recientes
     const calculations = await prisma.$queryRaw`
-      SELECT id, "calculationType", "emissionsKg", "isCompensated", "createdAt"
-      FROM "B2CCalculation"
-      WHERE "userId" = ${userId}
-      ORDER BY "createdAt" DESC
+      SELECT id, "emissions_kg", "is_compensated", "created_at"
+      FROM "b2c_calculations"
+      WHERE "user_id" = ${userId}::uuid
+      ORDER BY "created_at" DESC
       LIMIT 5
     `;
 
     calculations.forEach(calc => {
       activities.push({
-        type: calc.isCompensated ? 'compensation' : 'calculation',
-        description: calc.isCompensated 
-          ? `Compensó ${Number(calc.emissionsKg).toFixed(1)} kg CO₂`
-          : `Calculó ${Number(calc.emissionsKg).toFixed(1)} kg CO₂`,
-        timestamp: calc.createdAt,
+        type: calc.is_compensated ? 'compensation' : 'calculation',
+        description: calc.is_compensated 
+          ? `Compensó ${Number(calc.emissions_kg).toFixed(1)} kg CO₂`
+          : `Calculó ${Number(calc.emissions_kg).toFixed(1)} kg CO₂`,
+        timestamp: calc.created_at,
         entityId: calc.id,
         entityType: 'B2CCalculation'
       });
@@ -454,12 +435,11 @@ async function getGlobalCompensationMetrics(dateFrom) {
     const metrics = await prisma.$queryRaw`
       SELECT 
         COUNT(*) as total_calculations,
-        COALESCE(SUM(CASE WHEN "isCompensated" = true THEN 1 ELSE 0 END), 0) as compensations,
-        COALESCE(SUM("emissionsKg"), 0) as total_emissions,
-        COALESCE(SUM(CASE WHEN "isCompensated" = true THEN "emissionsKg" ELSE 0 END), 0) as compensated_emissions,
-        COALESCE(SUM(CASE WHEN "isCompensated" = true THEN "amountClp" ELSE 0 END), 0) as total_revenue
-      FROM "B2CCalculation"
-      WHERE "createdAt" >= ${dateFrom}
+        COALESCE(SUM(CASE WHEN "is_compensated" = true THEN 1 ELSE 0 END), 0) as compensations,
+        COALESCE(SUM("emissions_kg"), 0) as total_emissions,
+        COALESCE(SUM(CASE WHEN "is_compensated" = true THEN "emissions_kg" ELSE 0 END), 0) as compensated_emissions
+      FROM "b2c_calculations"
+      WHERE "created_at" >= ${dateFrom}
     `;
 
     if (metrics[0]) {
@@ -474,7 +454,7 @@ async function getGlobalCompensationMetrics(dateFrom) {
           : 0,
         totalEmissionsKg: Number(metrics[0].total_emissions) || 0,
         compensatedEmissionsKg: Number(metrics[0].compensated_emissions) || 0,
-        totalRevenueCLP: Number(metrics[0].total_revenue) || 0
+        totalRevenueCLP: 0
       };
     }
 
@@ -487,6 +467,7 @@ async function getGlobalCompensationMetrics(dateFrom) {
       totalRevenueCLP: 0
     };
   } catch (error) {
+    console.error('Error getGlobalCompensationMetrics', error);
     return {
       totalCalculations: 0,
       totalCompensations: 0,

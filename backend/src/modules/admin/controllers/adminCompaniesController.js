@@ -423,7 +423,7 @@ const getCompanyDocuments = async (req, res) => {
  */
 const reviewDocument = async (req, res) => {
   try {
-    const { id, docId } = req.params;
+    const { id, documentId } = req.params;
     const { status, notes } = req.body;
 
     if (!status || !['approved', 'rejected', 'pending'].includes(status)) {
@@ -436,7 +436,7 @@ const reviewDocument = async (req, res) => {
     // Verificar que el documento pertenece a la empresa
     const document = await prisma.companyDocument.findFirst({
       where: {
-        id: docId,
+        id: documentId,
         companyId: id
       }
     });
@@ -450,7 +450,7 @@ const reviewDocument = async (req, res) => {
 
     // Actualizar documento
     const updatedDoc = await prisma.companyDocument.update({
-      where: { id: docId },
+      where: { id: documentId },
       data: { status }
     });
 
@@ -459,7 +459,7 @@ const reviewDocument = async (req, res) => {
       data: {
         action: 'DOCUMENT_REVIEW',
         entityType: 'CompanyDocument',
-        entityId: docId,
+        entityId: documentId,
         actorUserId: req.user.id,
         changesJson: JSON.stringify({
           newStatus: status,
@@ -469,7 +469,7 @@ const reviewDocument = async (req, res) => {
       }
     });
 
-    logger.info(`Documento ${docId} revisado por ${req.user.email}: ${status}`);
+    logger.info(`Documento ${documentId} revisado por ${req.user.email}: ${status}`);
 
     res.json({
       success: true,

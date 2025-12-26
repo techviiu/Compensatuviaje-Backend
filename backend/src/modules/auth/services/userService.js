@@ -32,6 +32,10 @@ class UserService {
    */
   async getUserProfile(userId) {
     try {
+      if (!userId) {
+        throw new Error('USER_ID_REQUIRED');
+      }
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {

@@ -20,7 +20,14 @@ const prisma = new PrismaClient();
  */
 const getCompanyDashboard = async (req, res) => {
   try {
-    const { id: companyId } = req.params;
+    const companyId = req.params.id || req.user?.company_id || req.user?.companyId;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de empresa no proporcionado'
+      });
+    }
 
     // Obtener datos en paralelo
     const [
@@ -180,7 +187,14 @@ const getAdminDashboard = async (req, res) => {
  */
 const getOnboardingProgress = async (req, res) => {
   try {
-    const { id: companyId } = req.params;
+    const companyId = req.params.id || req.user?.company_id || req.user?.companyId;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de empresa no proporcionado'
+      });
+    }
 
     const [company, documents, documentValidation, domains] = await Promise.all([
       companyService.getCompanyById(companyId),
