@@ -1,6 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const dashboardController = require('../../onboard/controllers/dashboardController');
+const adminDashboardController = require('../controllers/adminDashboardController');
 
 const router = express.Router();
 
@@ -17,10 +18,22 @@ const dashboardRateLimit = rateLimit({
 router.use(dashboardRateLimit);
 
 /**
- * Dashboard administrativo general
+ * Dashboard administrativo general con métricas completas
  * GET /api/admin/dashboard
  */
-router.get('/', dashboardController.getAdminDashboard);
+router.get('/', adminDashboardController.getDashboard);
+
+/**
+ * Métricas por período para gráficos
+ * GET /api/admin/dashboard/metrics
+ */
+router.get('/metrics', adminDashboardController.getMetrics);
+
+/**
+ * Estadísticas detalladas de empresas
+ * GET /api/admin/dashboard/companies-stats
+ */
+router.get('/companies-stats', adminDashboardController.getCompaniesStats);
 
 /**
  * Dashboard de empresa específica (admin)
